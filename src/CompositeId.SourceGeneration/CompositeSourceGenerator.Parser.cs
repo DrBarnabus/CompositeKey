@@ -319,7 +319,7 @@ public sealed partial class CompositeSourceGenerator
         {
             var publicConstructors = typeSymbol.Constructors
                 .Where(c => !c.IsStatic && !(c.IsImplicitlyDeclared && typeSymbol.IsValueType && c.Parameters.Length == 0))
-                .Where(c => c is not { DeclaredAccessibility: Accessibility.Protected, Parameters.Length: 1 })
+                .Where(c => !(c.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, typeSymbol)))
                 .ToArray();
 
             return publicConstructors.Length == 1
