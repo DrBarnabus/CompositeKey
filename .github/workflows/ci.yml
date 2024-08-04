@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: 1
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install .NET SDK v8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.303
+        env:
+          DOTNET_INSTALL_DIR: /usr/share/dotnet
+
+      - name: Setup GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.0
+        with:
+          versionSpec: 5.x
+
+      - name: Cache NuGet Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json') }}
+            nuget-${{ runner.os }}-
+
+      - name: Add GitHub NuGet Source
+        run: dotnet nuget add source --username DrBarnabus --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name "GitHub" "https://nuget.pkg.github.com/DrBarnabus/index.json"
+
+      - name: Execute GitVersion
+        uses: gittools/actions/gitversion/execute@v3.0.0
+        id: gitversion
+
+      - name: Restore
+        run: dotnet restore --locked-mode
+      - name: Build
+        run: dotnet build -c Release --no-restore -p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
+      - name: Pack
+        run: dotnet pack src/CompositeId -c Release --no-build -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} -o _output
+
+      - name: Push
+        if: github.event_name != 'pull_request'
+        run: |
+          dotnet nuget push _output/*.nupkg --source "GitHub" --api-key ${{ secrets.GITHUB_TOKEN }}
+          dotnet nuget push _output/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}

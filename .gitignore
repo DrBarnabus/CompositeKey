@@ -1,0 +1,7 @@
+# Build Files
+[Oo]bj
+[Bb]in
+
+# JetBrains Rider
+.idea
+*.DotSettings.user

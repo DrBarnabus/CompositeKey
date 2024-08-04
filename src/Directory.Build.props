@@ -1,0 +1,36 @@
+<Project>
+
+    <PropertyGroup>
+        <LangVersion>12</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <WarningsAsErrors />
+        <WarningsNotAsErrors>CS0618</WarningsNotAsErrors>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <CurrentYear>$([System.DateTime]::Today.Year)</CurrentYear>
+        <Authors>Daniel Woodward</Authors>
+        <Copyright>Copyright Daniel Woodward $(CurrentYear)</Copyright>
+        <Company>$(Authors)</Company>
+
+        <PackageProjectUrl>https://github.com/DrBarnabus/CompositeId</PackageProjectUrl>
+        <PackageRequiresLicenseAcceptance>false</PackageRequiresLicenseAcceptance>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+
+        <RepositoryUrl>https://github.com/DrBarnabus/CompositeId.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.4">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+</Project>
