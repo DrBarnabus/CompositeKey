@@ -3,6 +3,7 @@
 #### Fast and Optimized Composite Keys utilizing Source Generation
 
 [![GitHub Release][gh-release-badge]][gh-release]
+[![NuGet Downloads][nuget-downloads-badge]][nuget-downloads]
 [![Build Status][gh-actions-badge]][gh-actions]
 
 ---
@@ -38,6 +39,8 @@ Console.WriteLine(complexKey.ToSortKeyString());
 <!-- Badges -->
 [gh-release-badge]: https://img.shields.io/github/v/release/DrBarnabus/CompositeKey?color=g&style=for-the-badge
 [gh-release]: https://github.com/DrBarnabus/CompositeKey/releases/latest
+[nuget-downloads-badge]: https://img.shields.io/nuget/dt/CompositeKey?color=g&logo=nuget&style=for-the-badge
+[nuget-downloads]: https://www.nuget.org/packages/CompositeKey
 [gh-actions-badge]: https://img.shields.io/github/actions/workflow/status/DrBarnabus/CompositeKey/ci.yml?logo=github&branch=main&style=for-the-badge
 [gh-actions]: https://github.com/DrBarnabus/CompositeKey/actions/workflows/ci.yml
 
