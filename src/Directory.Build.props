@@ -17,12 +17,12 @@
         <Copyright>Copyright Daniel Woodward $(CurrentYear)</Copyright>
         <Company>$(Authors)</Company>
 
-        <PackageProjectUrl>https://github.com/DrBarnabus/CompositeId</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/DrBarnabus/CompositeKey</PackageProjectUrl>
         <PackageRequiresLicenseAcceptance>false</PackageRequiresLicenseAcceptance>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
 
-        <RepositoryUrl>https://github.com/DrBarnabus/CompositeId.git</RepositoryUrl>
+        <RepositoryUrl>https://github.com/DrBarnabus/CompositeKey.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
     </PropertyGroup>
 

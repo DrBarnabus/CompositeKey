@@ -59,7 +59,7 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore -p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
       - name: Pack
-        run: dotnet pack src/CompositeId -c Release --no-build -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} -o _output
+        run: dotnet pack src/CompositeKey -c Release --no-build -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} -o _output
 
       - name: Push
         if: github.event_name != 'pull_request'

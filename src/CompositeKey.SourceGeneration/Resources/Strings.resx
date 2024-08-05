@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<root>
+    <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+        <xsd:element name="root" msdata:IsDataSet="true">
+
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>1.3</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="UnsupportedLanguageVersionTitle" xml:space="preserve">
+        <value>C# language version not supported by the source generator.</value>
+    </data>
+    <data name="UnsupportedLanguageVersionMessageFormat" xml:space="preserve">
+        <value>The CompositeKey source generator does not support C# {0}. Please use language version {1} or greater.</value>
+    </data>
+    <data name="UnsupportedCompositeTypeTitle" xml:space="preserve">
+        <value>The type annotated with the 'CompositeKey' attribtue is not supported.</value>
+    </data>
+    <data name="UnsupportedCompositeTypeMessageFormat" xml:space="preserve">
+        <value>The 'CompositeKey' type '{0}' is not currently supported, at present, only record types are supported.</value>
+    </data>
+    <data name="CompositeTypeMustBePartialTitle" xml:space="preserve">
+        <value>The type annotated wth the 'CompositeKey' attribute must be partial.</value>
+    </data>
+    <data name="CompositeTypeMustBePartialMessageFormat" xml:space="preserve">
+        <value>The 'CompositeKey' type '{0}' (and all containing types) must be partial to kick off source generation.</value>
+    </data>
+</root>

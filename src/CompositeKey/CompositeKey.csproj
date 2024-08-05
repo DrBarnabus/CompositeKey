@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+
+        <PackageId>CompositeKey</PackageId>
+        <PackageTags>composite-key;key;primary-key;partition-key;sort-key;dynamodb;nosql</PackageTags>
+        <Description>Fast and Optimized Composite Keys utilizing Source Generation</Description>
+
+        <BeforePack>$(BeforePack);IncludePackAsAnalyzerProjectReferences</BeforePack>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\CompositeKey.SourceGeneration\CompositeKey.SourceGeneration.csproj" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../../README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <Target Name="IncludePackAsAnalyzerProjectReferences" Condition="'@(ProjectReference)' != '' and @(ProjectReference->AnyHaveMetadataValue('PackAsAnalyzer', 'true'))">
+        <MSBuild Projects="@(ProjectReference->WithMetadataValue('PackAsAnalyzer', 'true'))" Targets="GetPackAsAnalyzerFiles">
+            <Output TaskParameter="TargetOutputs" ItemName="PackAsAnalyzerFile" />
+        </MSBuild>
+
+        <ItemGroup>
+            <Content Include="@(PackAsAnalyzerFile->WithMetadataValue('IsSymbol', ''))" Pack="True" />
+            <_TargetPathsToSymbols Include="@(PackAsAnalyzerFile->WithMetadataValue('IsSymbol', 'true'))" TargetPath="/%(PackAsAnalyzerFile.PackagePath)" />
+        </ItemGroup>
+    </Target>
+
+</Project>
