@@ -72,7 +72,7 @@ public sealed partial class CompositeSourceGenerator
 
             if (TryGetAccessibleConstructor(targetTypeSymbol) is not { } constructor)
             {
-                // TODO: Report a diagnostic
+                ReportDiagnostic(DiagnosticDescriptors.NoObviousDefaultConstructor, _location, targetTypeSymbol.Name);
                 return null;
             }
 
@@ -82,7 +82,7 @@ public sealed partial class CompositeSourceGenerator
 
             var keyParts = ParseTemplateStringIntoKeyParts(compositeKeyAttributeValues!, properties);
             if (keyParts is null)
-                return null; // Should have already reported diagnostics by this point...
+                return null; // Should have already reported diagnostics by this point so just return null...
 
             var primaryDelimiterKeyPart = keyParts.OfType<PrimaryDelimiterKeyPart>().FirstOrDefault();
 
@@ -90,7 +90,10 @@ public sealed partial class CompositeSourceGenerator
             if (primaryDelimiterKeyPart is null)
             {
                 if (!keyParts.OfType<ValueKeyPart>().Any())
-                    return null; // TODO: Report a diagnostic
+                {
+                    ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, compositeKeyAttributeValues!.TemplateString);
+                    return null;
+                }
 
                 // If we reach this branch then it's just a Primary Key
                 key = new PrimaryKeySpec(keyParts.ToImmutableEquatableArray());
@@ -101,10 +104,16 @@ public sealed partial class CompositeSourceGenerator
                 var (partitionKeyParts, sortKeyParts) = SplitKeyPartsIntoPartitionAndSortKey(keyParts);
 
                 if (!partitionKeyParts.OfType<ValueKeyPart>().Any())
-                    return null; // TODO: Report a diagnostic
+                {
+                    ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, compositeKeyAttributeValues!.TemplateString);
+                    return null;
+                }
 
                 if (!sortKeyParts.OfType<ValueKeyPart>().Any())
-                    return null; // TODO: Report a diagnostic
+                {
+                    ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, compositeKeyAttributeValues!.TemplateString);
+                    return null;
+                }
 
                 key = new CompositePrimaryKeySpec(
                     keyParts.ToImmutableEquatableArray(),
@@ -139,13 +148,21 @@ public sealed partial class CompositeSourceGenerator
             CompositeKeyAttributeValues compositeKeyAttributeValues,
             List<PropertySpec> properties)
         {
-            var templateStringTokenizer = new TemplateStringTokenizer(compositeKeyAttributeValues.PrimaryKeySeparator);
-            var templateTokens = templateStringTokenizer.Tokenize(compositeKeyAttributeValues.TemplateString.AsSpan());
-            if (templateTokens.Count == 0)
-                return null; // TODO: Report a diagnostic
+            (string templateString, char? primaryKeySeparator) = compositeKeyAttributeValues;
 
-            if (compositeKeyAttributeValues.PrimaryKeySeparator is not null && !templateTokens.Any(tt => tt is PrimaryDelimiterTemplateToken))
-                return null; // TODO: Report a diagnostic
+            var templateStringTokenizer = new TemplateStringTokenizer(primaryKeySeparator);
+            var templateTokens = templateStringTokenizer.Tokenize(templateString.AsSpan());
+            if (templateTokens.Count == 0)
+            {
+                ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
+                return null;
+            }
+
+            if (primaryKeySeparator is not null && !templateTokens.Any(tt => tt is PrimaryDelimiterTemplateToken))
+            {
+                ReportDiagnostic(DiagnosticDescriptors.PrimaryKeySeparatorMissingFromTemplateString, _location, templateString, primaryKeySeparator);
+                return null;
+            }
 
             List<KeyPart> keyParts = [];
             foreach (var templateToken in templateTokens)
@@ -156,11 +173,14 @@ public sealed partial class CompositeSourceGenerator
                     DelimiterTemplateToken d => new DelimiterKeyPart(d.Value) { LengthRequired = 1 },
                     PropertyTemplateToken p => ToPropertyKeyPart(p),
                     ConstantTemplateToken c => new ConstantKeyPart(c.Value) { LengthRequired = c.Value.Length },
-                    _ => null // TODO: Report a diagnostic
+                    _ => null
                 };
 
                 if (keyPart is null)
+                {
+                    ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
                     return null;
+                }
 
                 keyParts.Add(keyPart);
             }
@@ -171,19 +191,40 @@ public sealed partial class CompositeSourceGenerator
             {
                 var property = properties.FirstOrDefault(p => p.Name == templateToken.Name);
                 if (property is not { HasGetter: true, HasSetter: true })
-                    return null; // TODO: Report a diagnostic
+                {
+                    ReportDiagnostic(DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter, _location, templateToken.Name);
+                    return null;
+                }
 
                 if (SymbolEqualityComparer.Default.Equals(property.Type.TypeSymbol, _knownTypeSymbols.GuidType))
                 {
-                    string? format = templateToken.Format?.ToLowerInvariant() ?? "d";
-                    (int lengthRequired, bool exactLengthRequirement) = format switch
+                    string format = templateToken.Format?.ToLowerInvariant() ?? "d";
+
+                    int lengthRequired;
+                    bool exactLengthRequirement = true;
+                    switch (format)
                     {
-                        "d" => (36, true),
-                        "n" => (32, true),
-                        "b" or "p" => (28, true),
-                        "x" => (32, false),
-                        _ => throw new InvalidOperationException($"Invalid Guid Format of '{format}' specified.") // TODO: Report a diagnostic
-                    };
+                        case "d":
+                            lengthRequired = 36;
+                            break;
+
+                        case "n":
+                            lengthRequired = 32;
+                            break;
+
+                        case "b" or "p":
+                            lengthRequired = 38;
+                            break;
+
+                        case "x":
+                            lengthRequired = 32;
+                            exactLengthRequirement = false;
+                            break;
+
+                        default:
+                            ReportDiagnostic(DiagnosticDescriptors.PropertyHasInvalidOrUnsupportedFormat, _location, property.Name, templateToken.Format);
+                            return null;
+                    }
 
                     return new PropertyKeyPart(property, format, ParseType.Guid, FormatType.Guid)
                     {

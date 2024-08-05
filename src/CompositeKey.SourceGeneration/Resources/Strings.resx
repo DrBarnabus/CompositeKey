@@ -36,4 +36,34 @@
     <data name="CompositeTypeMustBePartialMessageFormat" xml:space="preserve">
         <value>The 'CompositeKey' type '{0}' (and all containing types) must be partial to kick off source generation.</value>
     </data>
+    <data name="NoObviousDefaultConstructorTitle" xml:space="preserve">
+        <value>The type annotated with the 'CompositeKey' attribtue has no obvious constructor.</value>
+    </data>
+    <data name="NoObviousDefaultConstructorMessageFormat" xml:space="preserve">
+        <value>The 'CompositeKey' type '{0}' has no obvious constructor, at present, only types with either a single constructor or types with a parameterless constructor are supported.</value>
+    </data>
+    <data name="EmptyOrInvalidTemplateStringTitle" xml:space="preserve">
+        <value>The `TemplateString` provided to the 'CompositeKey' attribute is invalid.</value>
+    </data>
+    <data name="EmptyOrInvalidTemplateStringMessageFormat" xml:space="preserve">
+        <value>The 'TemplateString' of '{0}' is either empty or could not be successfully parsed.</value>
+    </data>
+    <data name="PrimaryKeySeparatorMissingFromTemplateStringTitle" xml:space="preserve">
+        <value>The 'PrimaryKeySeparator' provided to the 'CompositeKey' attribute is unused.</value>
+    </data>
+    <data name="PrimaryKeySeparatorMissingFromTemplateStringMessageFormat" xml:space="preserve">
+        <value>The 'TemplateString' of '{0}' does not use the configured 'PrimaryKeySeparator' of '{1}' so it failed validation.</value>
+    </data>
+    <data name="PropertyMustHaveAccessibleGetterAndSetterTitle" xml:space="preserve">
+        <value>Property used in 'TemplateString'  must have accessible get/set methods.</value>
+    </data>
+    <data name="PropertyMustHaveAccessibleGetterAndSetterMessageFormat" xml:space="preserve">
+        <value>The property '{0}' is missing either a setter or getter, this is not supported the property must have both accessible set/get methods.</value>
+    </data>
+    <data name="PropertyHasInvalidOrUnsupportedFormatTitle" xml:space="preserve">
+        <value>Property used in 'TemplateString' has invalid or unsupported format specifier.</value>
+    </data>
+    <data name="PropertyHasInvalidOrUnsupportedFormatMessageFormat" xml:space="preserve">
+        <value>The property '{0}' uses format '{1}' which is either invalid for the properties type or unsupported by the 'CompositeKey' source generator.</value>
+    </data>
 </root>
