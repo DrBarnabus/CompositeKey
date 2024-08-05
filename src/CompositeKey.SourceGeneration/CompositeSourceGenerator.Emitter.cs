@@ -74,8 +74,16 @@ public sealed partial class CompositeSourceGenerator
                 writer.Indentation++;
 
                 WriteLengthCheck(writer, keyParts, "primaryKey", true);
-                WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, true);
-                WriteParsePropertiesImplementation(writer, keyParts, "primaryKey", primaryKeyPartRangesVariable, true);
+
+                Func<int, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
+                if (keyParts.Count > 1)
+                {
+                    WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, true);
+                    getPrimaryKeyPartInputVariable = i => $"primaryKey[{primaryKeyPartRangesVariable}[{i}]]";
+                }
+
+                WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, true);
+
                 writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
 
                 writer.Indentation--;
@@ -106,8 +114,15 @@ public sealed partial class CompositeSourceGenerator
 
                 {
                     WriteLengthCheck(writer, keyParts, "primaryKey", false);
-                    WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, false);
-                    WriteParsePropertiesImplementation(writer, keyParts, "primaryKey", primaryKeyPartRangesVariable, false);
+
+                    Func<int, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
+                    if (keyParts.Count > 1)
+                    {
+                        WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, false);
+                        getPrimaryKeyPartInputVariable = i => $"primaryKey[{primaryKeyPartRangesVariable}[{i}]]";
+                    }
+
+                    WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, false);
 
                     writer.WriteLines($"""
                                        result = {WriteConstructor(targetTypeSpec)};
@@ -230,11 +245,22 @@ public sealed partial class CompositeSourceGenerator
                 WriteLengthCheck(writer, partitionKeyParts, "partitionKey", true);
                 WriteLengthCheck(writer, sortKeyParts, "sortKey", true);
 
-                WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, true);
-                WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, true);
+                Func<int, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
+                if (partitionKeyParts.Count > 1)
+                {
+                    WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, true);
+                    getPartitionKeyPartInputVariable = i => $"partitionKey[{partitionKeyPartRangesVariable}[{i}]]";
+                }
 
-                WriteParsePropertiesImplementation(writer, partitionKeyParts, "partitionKey", partitionKeyPartRangesVariable, true);
-                WriteParsePropertiesImplementation(writer, sortKeyParts, "sortKey", sortKeyPartRangesVariable, true);
+                Func<int, string> getSortKeyPartInputVariable = static _ => "sortKey";
+                if (sortKeyParts.Count > 1)
+                {
+                    WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, true);
+                    getSortKeyPartInputVariable = i => $"sortKey[{sortKeyPartRangesVariable}[{i}]]";
+                }
+
+                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, true);
+                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, true);
 
                 writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
 
@@ -260,17 +286,29 @@ public sealed partial class CompositeSourceGenerator
                                     public static bool TryParse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey, [{{MaybeNullWhen}}(false)] out TSelf? result)
                                     {
                                         result = null;
+
                                     """);
                 writer.Indentation++;
 
                 WriteLengthCheck(writer, partitionKeyParts, "partitionKey", false);
                 WriteLengthCheck(writer, sortKeyParts, "sortKey", false);
 
-                WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, false);
-                WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, false);
+                Func<int, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
+                if (partitionKeyParts.Count > 1)
+                {
+                    WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, false);
+                    getPartitionKeyPartInputVariable = i => $"partitionKey[{partitionKeyPartRangesVariable}[{i}]]";
+                }
 
-                WriteParsePropertiesImplementation(writer, partitionKeyParts, "partitionKey", partitionKeyPartRangesVariable, false);
-                WriteParsePropertiesImplementation(writer, sortKeyParts, "sortKey", sortKeyPartRangesVariable, false);
+                Func<int, string> getSortKeyPartInputVariable = static _ => "sortKey";
+                if (sortKeyParts.Count > 1)
+                {
+                    WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, false);
+                    getSortKeyPartInputVariable = i => $"sortKey[{sortKeyPartRangesVariable}[{i}]]";
+                }
+
+                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, false);
+                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, false);
 
                 writer.WriteLines($"""
                                    result = {WriteConstructor(targetTypeSpec)};
@@ -339,12 +377,12 @@ public sealed partial class CompositeSourceGenerator
                                """);
         }
 
-        private static void WriteParsePropertiesImplementation(SourceWriter writer, List<KeyPart> parts, string inputVariable, string inputRangesVariable, bool shouldThrow)
+        private static void WriteParsePropertiesImplementation(SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow)
         {
             var valueParts = parts.OfType<ValueKeyPart>().ToArray();
             for (int i = 0; i < valueParts.Length; i++)
             {
-                string partInputVariable = $"{inputVariable}[{inputRangesVariable}[{i}]]";
+                string partInputVariable = getPartInputVariable(i);
 
                 switch (valueParts[i])
                 {
