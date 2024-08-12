@@ -436,7 +436,7 @@ public sealed partial class CompositeSourceGenerator
                 if (!isPartialType)
                     return false;
 
-                stringBuilder.Append(GetTypeKindKeyword(typeDeclarationSyntax));
+                stringBuilder.Append(GetTypeKindKeyword(current));
                 stringBuilder.Append(' ');
 
                 var typeSymbol = semanticModel.GetDeclaredSymbol(current, cancellationToken);
