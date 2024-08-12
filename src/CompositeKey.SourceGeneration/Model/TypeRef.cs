@@ -6,15 +6,12 @@ namespace CompositeKey.SourceGeneration.Model;
 [DebuggerDisplay("Name = {Name}")]
 public sealed class TypeRef : IEquatable<TypeRef>
 {
-    public ITypeSymbol TypeSymbol { get; }
-
     public string Name { get; }
 
     public string FullyQualifiedName { get; }
 
     public TypeRef(ITypeSymbol typeSymbol)
     {
-        TypeSymbol = typeSymbol;
         Name = typeSymbol.Name;
         FullyQualifiedName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
     }

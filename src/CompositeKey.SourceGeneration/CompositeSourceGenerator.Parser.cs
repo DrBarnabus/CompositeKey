@@ -78,7 +78,7 @@ public sealed partial class CompositeSourceGenerator
 
             var constructorParameters = ParseConstructorParameters(constructor, out var constructionStrategy, out bool constructorSetsRequiredMembers);
             var properties = ParseProperties(targetTypeSymbol);
-            var propertyInitializers = ParsePropertyInitializers(constructorParameters, properties, ref constructionStrategy, constructorSetsRequiredMembers);
+            var propertyInitializers = ParsePropertyInitializers(constructorParameters, properties.Select(p => p.Spec).ToList(), ref constructionStrategy, constructorSetsRequiredMembers);
 
             var keyParts = ParseTemplateStringIntoKeyParts(compositeKeyAttributeValues!, properties);
             if (keyParts is null)
@@ -127,7 +127,7 @@ public sealed partial class CompositeSourceGenerator
                     new TypeRef(targetTypeSymbol),
                     targetTypeSymbol.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString() : null,
                     targetTypeDeclarations.ToImmutableEquatableArray(),
-                    properties.ToImmutableEquatableArray(),
+                    properties.Select(p => p.Spec).ToImmutableEquatableArray(),
                     constructorParameters.ToImmutableEquatableArray(),
                     propertyInitializers.ToImmutableEquatableArray(),
                     constructionStrategy),
@@ -146,7 +146,7 @@ public sealed partial class CompositeSourceGenerator
 
         private List<KeyPart>? ParseTemplateStringIntoKeyParts(
             CompositeKeyAttributeValues compositeKeyAttributeValues,
-            List<PropertySpec> properties)
+            List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> properties)
         {
             (string templateString, char? primaryKeySeparator) = compositeKeyAttributeValues;
 
@@ -189,14 +189,16 @@ public sealed partial class CompositeSourceGenerator
 
             PropertyKeyPart? ToPropertyKeyPart(PropertyTemplateToken templateToken)
             {
-                var property = properties.FirstOrDefault(p => p.Name == templateToken.Name);
-                if (property is not { HasGetter: true, HasSetter: true })
+                var property = properties.FirstOrDefault(p => p.Spec.Name == templateToken.Name);
+                if (property == default || property.Spec is not { HasGetter: true, HasSetter: true })
                 {
                     ReportDiagnostic(DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter, _location, templateToken.Name);
                     return null;
                 }
 
-                if (SymbolEqualityComparer.Default.Equals(property.Type.TypeSymbol, _knownTypeSymbols.GuidType))
+                var (propertySpec, typeSymbol) = property;
+
+                if (SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.GuidType))
                 {
                     string format = templateToken.Format?.ToLowerInvariant() ?? "d";
 
@@ -222,44 +224,44 @@ public sealed partial class CompositeSourceGenerator
                             break;
 
                         default:
-                            ReportDiagnostic(DiagnosticDescriptors.PropertyHasInvalidOrUnsupportedFormat, _location, property.Name, templateToken.Format);
+                            ReportDiagnostic(DiagnosticDescriptors.PropertyHasInvalidOrUnsupportedFormat, _location, propertySpec.Name, templateToken.Format);
                             return null;
                     }
 
-                    return new PropertyKeyPart(property, format, ParseType.Guid, FormatType.Guid)
+                    return new PropertyKeyPart(propertySpec, format, ParseType.Guid, FormatType.Guid)
                     {
                         LengthRequired = lengthRequired,
                         ExactLengthRequirement = exactLengthRequirement
                     };
                 }
 
-                if (SymbolEqualityComparer.Default.Equals(property.Type.TypeSymbol, _knownTypeSymbols.StringType))
+                if (SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.StringType))
                 {
-                    return new PropertyKeyPart(property, null, ParseType.String, FormatType.String)
+                    return new PropertyKeyPart(propertySpec, null, ParseType.String, FormatType.String)
                     {
                         LengthRequired = 1,
                         ExactLengthRequirement = false
                     };
                 }
 
-                if (property.Type.TypeSymbol.TypeKind == TypeKind.Enum)
+                if (typeSymbol.TypeKind == TypeKind.Enum)
                 {
                     string format = templateToken.Format?.ToLowerInvariant() ?? "g";
-                    return new PropertyKeyPart(property, format, ParseType.Enum, FormatType.Enum)
+                    return new PropertyKeyPart(propertySpec, format, ParseType.Enum, FormatType.Enum)
                     {
                         LengthRequired = 1,
                         ExactLengthRequirement = false
                     };
                 }
 
-                var interfaces = property.Type.TypeSymbol.AllInterfaces;
+                var interfaces = typeSymbol.AllInterfaces;
                 bool isSpanParsable = interfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith("global::System.ISpanParsable"));
                 bool isSpanFormattable = interfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Equals("global::System.ISpanFormattable"));
 
                 if (!isSpanParsable || !isSpanFormattable)
-                    throw new NotSupportedException($"Unsupported property of type '{property.Type.FullyQualifiedName}'");
+                    throw new NotSupportedException($"Unsupported property of type '{propertySpec.Type.FullyQualifiedName}'");
 
-                return new PropertyKeyPart(property, templateToken.Format, ParseType.SpanParsable, FormatType.SpanFormattable)
+                return new PropertyKeyPart(propertySpec, templateToken.Format, ParseType.SpanParsable, FormatType.SpanFormattable)
                 {
                     LengthRequired = 1,
                     ExactLengthRequirement = false
@@ -307,9 +309,9 @@ public sealed partial class CompositeSourceGenerator
             return propertyInitializers;
         }
 
-        private static List<PropertySpec> ParseProperties(INamedTypeSymbol typeSymbol)
+        private static List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> ParseProperties(INamedTypeSymbol typeSymbol)
         {
-            List<PropertySpec> properties = [];
+            List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> properties = [];
             foreach (var propertySymbol in typeSymbol.GetMembers().OfType<IPropertySymbol>())
             {
                 if (propertySymbol is { IsImplicitlyDeclared: true, Name: "EqualityContract" })
@@ -318,14 +320,16 @@ public sealed partial class CompositeSourceGenerator
                 if (propertySymbol.IsStatic || propertySymbol.Parameters.Length > 0)
                     continue;
 
-                properties.Add(new PropertySpec(
+                var propertySpec = new PropertySpec(
                     new TypeRef(propertySymbol.Type),
                     propertySymbol.Name,
                     propertySymbol.Name.FirstToLowerInvariant(),
                     propertySymbol.IsRequired,
                     propertySymbol.GetMethod is not null,
                     propertySymbol.SetMethod is not null,
-                    propertySymbol.SetMethod is { IsInitOnly: true }));
+                    propertySymbol.SetMethod is { IsInitOnly: true });
+
+                properties.Add((propertySpec, propertySymbol.Type));
             }
 
             return properties;
