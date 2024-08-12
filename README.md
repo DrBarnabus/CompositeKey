@@ -5,6 +5,7 @@
 [![GitHub Release][gh-release-badge]][gh-release]
 [![NuGet Downloads][nuget-downloads-badge]][nuget-downloads]
 [![Build Status][gh-actions-badge]][gh-actions]
+[![Codecov][codecov-badge]][codecov]
 
 ---
 
@@ -43,6 +44,8 @@ Console.WriteLine(complexKey.ToSortKeyString());
 [nuget-downloads]: https://www.nuget.org/packages/CompositeKey
 [gh-actions-badge]: https://img.shields.io/github/actions/workflow/status/DrBarnabus/CompositeKey/ci.yml?logo=github&branch=main&style=for-the-badge
 [gh-actions]: https://github.com/DrBarnabus/CompositeKey/actions/workflows/ci.yml
+[codecov-badge]: https://img.shields.io/codecov/c/github/DrBarnabus/CompositeKey?token=nSylLUGX90&style=for-the-badge&logo=codecov&logoColor=white
+[codecov]: https://codecov.io/gh/DrBarnabus/CompositeKey
 
 <!-- Links -->
 [dynamodb]: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html
