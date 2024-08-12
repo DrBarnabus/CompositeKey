@@ -497,6 +497,7 @@ public sealed partial class CompositeSourceGenerator
                               // Suppress warnings about [Obsolete] member usage in generated code.
                               #pragma warning disable CS0612, CS0618
 
+                              using System;
                               using CompositeKey;
 
                               """);
