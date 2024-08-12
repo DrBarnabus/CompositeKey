@@ -509,7 +509,7 @@ public sealed partial class CompositeSourceGenerator
                 writer.Indentation++;
             }
 
-            writer.WriteLine($"using TSelf = {generationSpec.TargetType.Type.Name};");
+            writer.WriteLine($"using TSelf = {generationSpec.TargetType.Type.FullyQualifiedName.Replace("global::", string.Empty)};");
             writer.WriteLine();
 
             var nestedTypeDeclarations = generationSpec.TargetType.TypeDeclarations;
