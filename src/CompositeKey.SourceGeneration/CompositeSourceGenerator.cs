@@ -1,4 +1,5 @@
-﻿using CompositeKey.SourceGeneration.Core;
+﻿using System.Collections.Immutable;
+using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Model;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,6 +9,8 @@ namespace CompositeKey.SourceGeneration;
 [Generator]
 public sealed partial class CompositeSourceGenerator : IIncrementalGenerator
 {
+    public const string GenerationSpecTrackingName = nameof(GenerationSpec);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var generationSpecs = context.SyntaxProvider
@@ -23,12 +26,12 @@ public sealed partial class CompositeSourceGenerator : IIncrementalGenerator
 
                 return (GenerationSpec: generationSpec, parser.Diagnostics);
             })
-            .WithTrackingName(nameof(GenerationSpec));
+            .WithTrackingName(GenerationSpecTrackingName);
 
         context.RegisterSourceOutput(generationSpecs, ReportDiagnosticsAndEmitSource);
     }
 
-    private static void ReportDiagnosticsAndEmitSource(
+    private void ReportDiagnosticsAndEmitSource(
         SourceProductionContext sourceProductionContext,
         (GenerationSpec? GenerationSpec, ImmutableEquatableArray<DiagnosticInfo> Diagnostics) input)
     {
@@ -38,7 +41,11 @@ public sealed partial class CompositeSourceGenerator : IIncrementalGenerator
         if (input.GenerationSpec is null)
             return;
 
+        OnSourceEmitting?.Invoke(ImmutableArray.Create(input.GenerationSpec));
+
         var emitter = new Emitter(sourceProductionContext);
         emitter.Emit(input.GenerationSpec);
     }
+
+    public Action<ImmutableArray<GenerationSpec>>? OnSourceEmitting { get; init; }
 }
