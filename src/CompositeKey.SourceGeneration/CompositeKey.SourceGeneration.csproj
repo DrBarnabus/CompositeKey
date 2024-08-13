@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
 
         <AnalyzerLanguage>cs</AnalyzerLanguage>
         <AnalyzerRoslynVersion>4.10</AnalyzerRoslynVersion>
@@ -44,7 +44,7 @@
             <PackAsAnalyzerPath Condition="'$(AnalyzerLanguage)' != ''">$(PackAsAnalyzerPath)/$(AnalyzerLanguage)</PackAsAnalyzerPath>
         </PropertyGroup>
 
-        <ItemGroup>
+        <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
             <PackAsAnalyzerFile Include="@(_BuildOutputInPackage)" />
             <PackAsAnalyzerFile Include="@(_TargetPathsToSymbols)" IsSymbol="true" />
             <PackAsAnalyzerFile PackagePath="$(PackAsAnalyzerPath)/%(TargetPath)" />
