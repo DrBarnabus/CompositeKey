@@ -65,12 +65,13 @@ jobs:
       - name: Pack
         run: dotnet pack src/CompositeKey -c Release --no-build -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} -o _output
 
-      - name: Upload Coverage
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./unit-test-results/*/coverage.opencover.xml
-          fail_ci_if_error: true
+      # Disabled due to Codecov throwing 500 errors
+      # - name: Upload Coverage
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     files: ./unit-test-results/*/coverage.opencover.xml
+      #     fail_ci_if_error: true
 
       - name: Push
         if: github.event_name != 'pull_request'
