@@ -152,7 +152,7 @@ public static class CompositePrimaryKeyTests
     [
         ["a", "c"],
         ["a#b", "c"],
-        ["a#b", "c"],
+        ["a#b", "c~"],
         ["a#b", "c~d"],
         ["a#b", "c~d@e"],
         ["a#123", "Constant~Three@String"],
