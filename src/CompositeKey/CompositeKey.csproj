@@ -24,7 +24,7 @@
         </MSBuild>
 
         <ItemGroup>
-            <Content Include="@(PackAsAnalyzerFile->WithMetadataValue('IsSymbol', ''))" Pack="True" />
+            <Content Include="@(PackAsAnalyzerFile->WithMetadataValue('IsSymbol', ''))" Pack="True" Condition="'%(PackAsAnalyzerFile.TargetFramework)' == 'netstandard2.0'" />
             <_TargetPathsToSymbols Include="@(PackAsAnalyzerFile->WithMetadataValue('IsSymbol', 'true'))" TargetPath="/%(PackAsAnalyzerFile.PackagePath)" />
         </ItemGroup>
     </Target>
