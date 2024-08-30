@@ -3,6 +3,13 @@
 All notable changes to this project will be automatically documented in this file.
 
 
+### [1.0.1](https://github.com/DrBarnabus/CompositeKey/compare/v1.0.0...v1.0.1) (2024-08-30)
+
+
+### Bug Fixes
+
+* Analyzer not being packaged correctly ([9a84841](https://github.com/DrBarnabus/CompositeKey/commit/9a8484138320f6422ab98e4cf86819b1d7c6d706))
+
 ## 1.0.0 (2024-08-21)
 
 
