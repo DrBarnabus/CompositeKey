@@ -70,7 +70,7 @@ public sealed partial class CompositeSourceGenerator
             var compositeKeyAttributeValues = ParseCompositeKeyAttributeValues(targetTypeSymbol);
             Debug.Assert(compositeKeyAttributeValues is not null);
 
-            if (TryGetAccessibleConstructor(targetTypeSymbol) is not { } constructor)
+            if (TryGetObviousOrExplicitlyMarkedConstructor(targetTypeSymbol) is not { } constructor)
             {
                 ReportDiagnostic(DiagnosticDescriptors.NoObviousDefaultConstructor, _location, targetTypeSymbol.Name);
                 return null;
@@ -360,16 +360,32 @@ public sealed partial class CompositeSourceGenerator
             return constructorParameters;
         }
 
-        private static IMethodSymbol? TryGetAccessibleConstructor(INamedTypeSymbol typeSymbol)
+        private IMethodSymbol? TryGetObviousOrExplicitlyMarkedConstructor(INamedTypeSymbol typeSymbol)
         {
             var publicConstructors = typeSymbol.Constructors
                 .Where(c => !c.IsStatic && !(c.IsImplicitlyDeclared && typeSymbol.IsValueType && c.Parameters.Length == 0))
                 .Where(c => !(c.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, typeSymbol)))
                 .ToArray();
 
-            return publicConstructors.Length == 1
-                ? publicConstructors[0]
-                : publicConstructors.FirstOrDefault(c => c.Parameters.Length == 0);
+            var lonePublicConstructor = publicConstructors.Length == 1 ? publicConstructors[0] : null;
+            IMethodSymbol? constructorWithAttribute = null, publicParameterlessConstructor = null;
+
+            foreach (var constructor in publicConstructors)
+            {
+                if (constructor.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, _knownTypeSymbols.CompositeKeyConstructorAttributeType)))
+                {
+                    if (constructorWithAttribute is not null)
+                        return null; // Somehow we found a duplicate so let's just return null so the diagnostic is emitted
+
+                    constructorWithAttribute = constructor;
+                }
+                else if (constructor.Parameters.Length == 0)
+                {
+                    publicParameterlessConstructor = constructor;
+                }
+            }
+
+            return constructorWithAttribute ?? publicParameterlessConstructor ?? lonePublicConstructor;
         }
 
         private CompositeKeyAttributeValues? ParseCompositeKeyAttributeValues(INamedTypeSymbol targetTypeSymbol)

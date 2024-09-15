@@ -4,8 +4,14 @@
 public sealed partial record GuidOnlyPrimaryKey(Guid First, Guid Second);
 
 [CompositeKey("{GuidValue}#{IntValue}~{StringValue}#{EnumValue}")]
+[method: CompositeKeyConstructor]
 public sealed partial record MixedTypePrimaryKey(Guid GuidValue, int IntValue, string StringValue, MixedTypePrimaryKey.EnumType EnumValue)
 {
+    // ReSharper disable once UnusedMember.Global
+    public MixedTypePrimaryKey() : this(Guid.NewGuid(), 0, string.Empty, EnumType.One)
+    {
+    }
+
     public enum EnumType { One, Two, Three };
 }
 

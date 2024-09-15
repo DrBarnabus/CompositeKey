@@ -6,6 +6,7 @@ namespace CompositeKey.SourceGeneration;
 internal sealed class KnownTypeSymbols(Compilation compilation)
 {
     private Option<INamedTypeSymbol?> _compositeKeyAttributeType;
+    private Option<INamedTypeSymbol?> _compositeKeyConstructorAttributeType;
     private Option<INamedTypeSymbol?> _setsRequiredMembersAttributeType;
     private Option<INamedTypeSymbol?> _guidType;
     private Option<INamedTypeSymbol?> _stringType;
@@ -13,6 +14,8 @@ internal sealed class KnownTypeSymbols(Compilation compilation)
     public Compilation Compilation { get; } = compilation;
 
     public INamedTypeSymbol? CompositeKeyAttributeType => GetOrResolveType(typeof(CompositeKeyAttribute), ref _compositeKeyAttributeType);
+
+    public INamedTypeSymbol? CompositeKeyConstructorAttributeType => GetOrResolveType(typeof(CompositeKeyConstructorAttribute), ref _compositeKeyConstructorAttributeType);
 
     public INamedTypeSymbol? SetsRequiredMembersAttributeType => GetOrResolveType(typeof(SetsRequiredMembersAttribute), ref _setsRequiredMembersAttributeType);
 

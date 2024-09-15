@@ -32,9 +32,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Include="..\CompositeKey\CompositeKeyAttribute.cs">
-        <Link>Common\CompositeKey\CompositeKeyAttribute.cs</Link>
-      </Compile>
+        <Compile Include="..\CompositeKey\CompositeKeyAttribute.cs" Link="Common\CompositeKey\CompositeKeyAttribute.cs" />
+        <Compile Include="..\CompositeKey\CompositeKeyConstructorAttribute.cs" Link="Common\CompositeKey\CompositeKeyConstructorAttribute.cs" />
     </ItemGroup>
 
     <Target Name="GetPackAsAnalyzerFiles" DependsOnTargets="$(GenerateNuspecDependsOn)" Returns="@(PackAsAnalyzerFile)">

@@ -500,4 +500,28 @@ public static class CompositeSourceGeneratorTests
 
         CompilationHelper.AssertDiagnostics(expectedDiagnostics, result.Diagnostics);
     }
+
+    [Fact]
+    public static void KeyHasExplicitlyMarkedConstructor_ShouldSuccessfullyCompile()
+    {
+        var compilation = CompilationHelper.CreateCompilationWithExplicitlyMarkedConstructor();
+        CompilationHelper.RunCompositeSourceGenerator(compilation);
+    }
+
+    [Fact]
+    public static void KeyHasMultipleExplicitlyMarkedConstructors_ShouldFailCompilation()
+    {
+        var compilation = CompilationHelper.CreateCompilationWithMultipleExplicitlyMarkedConstructors();
+        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
+
+        CompilationHelper.DiagnosticData[] expectedDiagnostics =
+        [
+            new CompilationHelper.DiagnosticData(
+                DiagnosticSeverity.Error, location, "The 'CompositeKey' type 'BasicPrimaryKey' has no obvious constructor, at present, only types with either a single constructor or types with a parameterless constructor are supported.")
+        ];
+
+        CompilationHelper.AssertDiagnostics(expectedDiagnostics, result.Diagnostics);
+    }
 }

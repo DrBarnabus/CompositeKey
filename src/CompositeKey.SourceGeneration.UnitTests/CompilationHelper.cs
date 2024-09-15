@@ -211,6 +211,65 @@ public static class CompilationHelper
         }
         """);
 
+    public static Compilation CreateCompilationWithExplicitlyMarkedConstructor() => CreateCompilation("""
+        using System;
+        using System.Diagnostics.CodeAnalysis;
+        using CompositeKey;
+
+        namespace UnitTests;
+
+        [CompositeKey("{FirstPart}#{SecondPart}#{ThirdPart}")]
+        public partial record BasicPrimaryKey
+        {
+            [CompositeKeyConstructor]
+            public BasicPrimaryKey(Guid firstPart, string secondPart, int thirdPart)
+            {
+                FirstPart = firstPart;
+                SecondPart = secondPart;
+                ThirdPart = thirdPart;
+            }
+
+            public BasicPrimaryKey(Guid firstPart, string secondPart)
+                : this(firstPart, secondPart, default(int))
+            {
+            }
+
+            public Guid FirstPart { get; init; }
+            public string SecondPart { get; init; }
+            public int ThirdPart { get; set; }
+        }
+        """);
+
+    public static Compilation CreateCompilationWithMultipleExplicitlyMarkedConstructors() => CreateCompilation("""
+        using System;
+        using System.Diagnostics.CodeAnalysis;
+        using CompositeKey;
+
+        namespace UnitTests;
+
+        [CompositeKey("{FirstPart}#{SecondPart}#{ThirdPart}")]
+        public partial record BasicPrimaryKey
+        {
+            [CompositeKeyConstructor]
+            public BasicPrimaryKey(Guid firstPart, string secondPart, int thirdPart)
+            {
+                FirstPart = firstPart;
+                SecondPart = secondPart;
+                ThirdPart = thirdPart;
+            }
+
+            [CompositeKeyConstructor]
+            public BasicPrimaryKey(Guid firstPart, string secondPart)
+                : this(firstPart, secondPart, default(int))
+            {
+            }
+
+            public Guid FirstPart { get; init; }
+            public string SecondPart { get; init; }
+            public int ThirdPart { get; set; }
+        }
+        """);
+
     public static Compilation CreateCompilationWithNestedTypeDeclarations() => CreateCompilation("""
         using System;
         using CompositeKey;

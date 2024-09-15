@@ -1,4 +1,6 @@
-﻿namespace CompositeKey;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace CompositeKey;
 
 /// <summary>
 /// Instructs the CompositeKey source generator to generate source code to format and parse a record as a composite
@@ -6,6 +8,7 @@
 /// </summary>
 /// <param name="template">The <see cref="Template"/> for how the composite key should be formatted and parsed.</param>
 [AttributeUsage(AttributeTargets.Class)]
+[ExcludeFromCodeCoverage]
 #if BUILDING_SOURCE_GENERATOR
 internal
 #else
