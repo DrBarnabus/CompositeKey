@@ -9,4 +9,7 @@ public sealed record TargetTypeSpec(
     ImmutableEquatableArray<PropertySpec> Properties,
     ImmutableEquatableArray<ConstructorParameterSpec> ConstructorParameters,
     ImmutableEquatableArray<PropertyInitializerSpec> PropertyInitializers,
-    ConstructionStrategy ConstructionStrategy);
+    ConstructionStrategy ConstructionStrategy)
+{
+    public string TypeName => Type.Name;
+}

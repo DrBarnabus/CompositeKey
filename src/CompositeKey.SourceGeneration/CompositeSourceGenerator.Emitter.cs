@@ -34,7 +34,7 @@ public sealed partial class CompositeSourceGenerator
             else if (generationSpec.Key is CompositePrimaryKeySpec compositePrimaryKeySpec)
                 EmitForCompositePrimaryKey(writer, generationSpec.TargetType, compositePrimaryKeySpec);
 
-            EmitCommonImplementations(writer);
+            EmitCommonImplementations(writer, generationSpec.TargetType);
 
             string hintName = $"{generationSpec.TargetType.Type.FullyQualifiedName.Replace("global::", string.Empty)}.g.cs";
             AddSource(hintName, CompleteSourceFileAndReturnSourceText(writer));
@@ -60,17 +60,17 @@ public sealed partial class CompositeSourceGenerator
 
             void WriteParseMethodImplementation()
             {
-                writer.WriteLines("""
-                                  public static TSelf Parse(string primaryKey)
-                                  {
-                                      ArgumentNullException.ThrowIfNull(primaryKey);
+                writer.WriteLines($$"""
+                                    public static {{targetTypeSpec.TypeName}} Parse(string primaryKey)
+                                    {
+                                        ArgumentNullException.ThrowIfNull(primaryKey);
 
-                                      return Parse((ReadOnlySpan<char>)primaryKey);
-                                  }
+                                        return Parse((ReadOnlySpan<char>)primaryKey);
+                                    }
 
-                                  public static TSelf Parse(ReadOnlySpan<char> primaryKey)
-                                  {
-                                  """);
+                                    public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> primaryKey)
+                                    {
+                                    """);
                 writer.Indentation++;
 
                 WriteLengthCheck(writer, keyParts, "primaryKey", true);
@@ -94,7 +94,7 @@ public sealed partial class CompositeSourceGenerator
             void WriteTryParseMethodImplementation()
             {
                 writer.WriteLines($$"""
-                                    public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out TSelf? result)
+                                    public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
                                         if(primaryKey is null)
                                         {
@@ -105,30 +105,28 @@ public sealed partial class CompositeSourceGenerator
                                         return TryParse((ReadOnlySpan<char>)primaryKey, out result);
                                     }
 
-                                    public static bool TryParse(ReadOnlySpan<char> primaryKey, [{{MaybeNullWhen}}(false)] out TSelf? result)
+                                    public static bool TryParse(ReadOnlySpan<char> primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
                                         result = null;
 
                                     """);
                 writer.Indentation++;
 
+                WriteLengthCheck(writer, keyParts, "primaryKey", false);
+
+                Func<int, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
+                if (keyParts.Count > 1)
                 {
-                    WriteLengthCheck(writer, keyParts, "primaryKey", false);
-
-                    Func<int, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
-                    if (keyParts.Count > 1)
-                    {
-                        WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, false);
-                        getPrimaryKeyPartInputVariable = i => $"primaryKey[{primaryKeyPartRangesVariable}[{i}]]";
-                    }
-
-                    WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, false);
-
-                    writer.WriteLines($"""
-                                       result = {WriteConstructor(targetTypeSpec)};
-                                       return true;
-                                       """);
+                    WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, false);
+                    getPrimaryKeyPartInputVariable = i => $"primaryKey[{primaryKeyPartRangesVariable}[{i}]]";
                 }
+
+                WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, false);
+
+                writer.WriteLines($"""
+                                   result = {WriteConstructor(targetTypeSpec)};
+                                   return true;
+                                   """);
 
                 writer.Indentation--;
                 writer.WriteLine("}");
@@ -174,17 +172,17 @@ public sealed partial class CompositeSourceGenerator
 
             void WriteParseMethodImplementation()
             {
-                writer.WriteLines("""
-                                  public static TSelf Parse(string primaryKey)
-                                  {
-                                      ArgumentNullException.ThrowIfNull(primaryKey);
+                writer.WriteLines($$"""
+                                    public static {{targetTypeSpec.TypeName}} Parse(string primaryKey)
+                                    {
+                                        ArgumentNullException.ThrowIfNull(primaryKey);
 
-                                      return Parse((ReadOnlySpan<char>)primaryKey);
-                                  }
+                                        return Parse((ReadOnlySpan<char>)primaryKey);
+                                    }
 
-                                  public static TSelf Parse(ReadOnlySpan<char> primaryKey)
-                                  {
-                                  """);
+                                    public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> primaryKey)
+                                    {
+                                    """);
                 writer.Indentation++;
 
                 WritePrimaryKeySplit(true);
@@ -199,7 +197,7 @@ public sealed partial class CompositeSourceGenerator
             void WriteTryParseMethodImplementation()
             {
                 writer.WriteLines($$"""
-                                    public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out TSelf? result)
+                                    public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
                                         if(primaryKey is null)
                                         {
@@ -210,7 +208,7 @@ public sealed partial class CompositeSourceGenerator
                                         return TryParse((ReadOnlySpan<char>)primaryKey, out result);
                                     }
 
-                                    public static bool TryParse(ReadOnlySpan<char> primaryKey, [{{MaybeNullWhen}}(false)] out TSelf? result)
+                                    public static bool TryParse(ReadOnlySpan<char> primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
                                         result = null;
 
@@ -228,18 +226,18 @@ public sealed partial class CompositeSourceGenerator
 
             void WriteCompositeParseMethodImplementation()
             {
-                writer.WriteLines("""
-                                  public static TSelf Parse(string partitionKey, string sortKey)
-                                  {
-                                      ArgumentNullException.ThrowIfNull(partitionKey);
-                                      ArgumentNullException.ThrowIfNull(sortKey);
+                writer.WriteLines($$"""
+                                    public static {{targetTypeSpec.TypeName}} Parse(string partitionKey, string sortKey)
+                                    {
+                                        ArgumentNullException.ThrowIfNull(partitionKey);
+                                        ArgumentNullException.ThrowIfNull(sortKey);
 
-                                      return Parse((ReadOnlySpan<char>)partitionKey, (ReadOnlySpan<char>)sortKey);
-                                  }
+                                        return Parse((ReadOnlySpan<char>)partitionKey, (ReadOnlySpan<char>)sortKey);
+                                    }
 
-                                  public static TSelf Parse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey)
-                                  {
-                                  """);
+                                    public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey)
+                                    {
+                                    """);
                 writer.Indentation++;
 
                 WriteLengthCheck(writer, partitionKeyParts, "partitionKey", true);
@@ -272,7 +270,7 @@ public sealed partial class CompositeSourceGenerator
             void WriteCompositeTryParseMethodImplementation()
             {
                 writer.WriteLines($$"""
-                                    public static bool TryParse([{{NotNullWhen}}(true)] string partitionKey, string sortKey, [{{MaybeNullWhen}}(false)] out TSelf? result)
+                                    public static bool TryParse([{{NotNullWhen}}(true)] string partitionKey, string sortKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
                                         if (partitionKey is null || sortKey is null)
                                         {
@@ -283,7 +281,7 @@ public sealed partial class CompositeSourceGenerator
                                         return TryParse((ReadOnlySpan<char>)partitionKey, (ReadOnlySpan<char>)sortKey, out result);
                                     }
 
-                                    public static bool TryParse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey, [{{MaybeNullWhen}}(false)] out TSelf? result)
+                                    public static bool TryParse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
                                         result = null;
 
@@ -321,23 +319,23 @@ public sealed partial class CompositeSourceGenerator
             }
         }
 
-        private static void EmitCommonImplementations(SourceWriter writer)
+        private static void EmitCommonImplementations(SourceWriter writer, TargetTypeSpec targetTypeSpec)
         {
             writer.WriteLines($$"""
                                 /// <inheritdoc cref="IFormattable.ToString(string?, IFormatProvider?)" />
                                 string IFormattable.ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
-                                /// <inheritdoc cref="IParsable{TSelf}.Parse(string, IFormatProvider?)" />
-                                static TSelf IParsable<TSelf>.Parse(string s, IFormatProvider? provider) => Parse(s);
+                                /// <inheritdoc cref="IParsable{{{targetTypeSpec.TypeName}}.Parse(string, IFormatProvider?)" />
+                                static {{targetTypeSpec.TypeName}} IParsable<{{targetTypeSpec.TypeName}}>.Parse(string s, IFormatProvider? provider) => Parse(s);
 
-                                /// <inheritdoc cref="IParsable{TSelf}.TryParse(string?, IFormatProvider?, out TSelf)" />
-                                static bool IParsable<TSelf>.TryParse([{{NotNullWhen}}(true)] string? s, IFormatProvider? provider, [{{MaybeNullWhen}}(false)] out TSelf result) => TryParse(s, out result);
+                                /// <inheritdoc cref="IParsable{{{targetTypeSpec.TypeName}}}.TryParse(string?, IFormatProvider?, out {{targetTypeSpec.TypeName}})" />
+                                static bool IParsable<{{targetTypeSpec.TypeName}}>.TryParse([{{NotNullWhen}}(true)] string? s, IFormatProvider? provider, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}} result) => TryParse(s, out result);
 
-                                /// <inheritdoc cref="ISpanParsable{TSelf}.Parse(ReadOnlySpan{char}, IFormatProvider?)" />
-                                static TSelf ISpanParsable<TSelf>.Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => Parse(s);
+                                /// <inheritdoc cref="ISpanParsable{{{targetTypeSpec.TypeName}}}.Parse(ReadOnlySpan{char}, IFormatProvider?)" />
+                                static {{targetTypeSpec.TypeName}} ISpanParsable<{{targetTypeSpec.TypeName}}>.Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => Parse(s);
 
-                                /// <inheritdoc cref="ISpanParsable{TSelf}.TryParse(ReadOnlySpan{char}, IFormatProvider?, out TSelf)" />
-                                static bool ISpanParsable<TSelf>.TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [{{MaybeNullWhen}}(false)] out TSelf result) => TryParse(s, out result);
+                                /// <inheritdoc cref="ISpanParsable{{{targetTypeSpec.TypeName}}}.TryParse(ReadOnlySpan{char}, IFormatProvider?, out {{targetTypeSpec.TypeName}})" />
+                                static bool ISpanParsable<{{targetTypeSpec.TypeName}}>.TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}} result) => TryParse(s, out result);
                                 """);
         }
 
@@ -439,7 +437,7 @@ public sealed partial class CompositeSourceGenerator
         private static string WriteConstructor(TargetTypeSpec targetTypeSpec)
         {
             var builder = new StringBuilder();
-            builder.Append("new TSelf(");
+            builder.Append($"new {targetTypeSpec.TypeName}(");
 
             if (targetTypeSpec.ConstructorParameters.Count > 0)
             {
@@ -509,9 +507,6 @@ public sealed partial class CompositeSourceGenerator
                 writer.Indentation++;
             }
 
-            writer.WriteLine($"using TSelf = {generationSpec.TargetType.Type.FullyQualifiedName.Replace("global::", string.Empty)};");
-            writer.WriteLine();
-
             var nestedTypeDeclarations = generationSpec.TargetType.TypeDeclarations;
             Debug.Assert(nestedTypeDeclarations.Count > 0);
 
@@ -526,7 +521,7 @@ public sealed partial class CompositeSourceGenerator
             writer.WriteLine($"""[global::System.CodeDom.Compiler.GeneratedCodeAttribute("{AssemblyName}", "{AssemblyVersion}")]""");
 
             // Emit the main class declaration
-            writer.WriteLine($"{nestedTypeDeclarations[0]} : {(generationSpec.Key is PrimaryKeySpec ? "IPrimaryKey" : "ICompositePrimaryKey")}<TSelf>");
+            writer.WriteLine($"{nestedTypeDeclarations[0]} : {(generationSpec.Key is PrimaryKeySpec ? "IPrimaryKey" : "ICompositePrimaryKey")}<{generationSpec.TargetType.TypeName}>");
             writer.WriteLine("{");
             writer.Indentation++;
 

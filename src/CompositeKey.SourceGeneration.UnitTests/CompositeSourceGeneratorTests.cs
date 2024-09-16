@@ -80,6 +80,13 @@ public static class CompositeSourceGeneratorTests
         CompilationHelper.RunCompositeSourceGenerator(compilation);
     }
 
+    [Fact]
+    public static void KeyIsPrivateInNestedTypeDeclarations_ShouldSuccessfullyGenerateSource()
+    {
+        var compilation = CompilationHelper.CreateCompilationWithNestedPrivateTypeDeclarations();
+        CompilationHelper.RunCompositeSourceGenerator(compilation);
+    }
+
     [Theory]
     [InlineData(LanguageVersion.CSharp11)]
     [InlineData(LanguageVersion.CSharp12)]

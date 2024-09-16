@@ -283,6 +283,19 @@ public static class CompilationHelper
         }
         """);
 
+    public static Compilation CreateCompilationWithNestedPrivateTypeDeclarations() => CreateCompilation("""
+        using System;
+        using CompositeKey;
+
+        namespace UnitTests;
+
+        public static partial class OutermostClass
+        {
+            [CompositeKey("{FirstPart}#{SecondPart}#{ThirdPart}")]
+            private partial record BasicPrimaryKey(Guid FirstPart, Guid SecondPart, Guid ThirdPart);
+        }
+        """);
+
     public record struct DiagnosticData(DiagnosticSeverity Severity, string FilePath, LinePositionSpan LinePositionSpan, string Message)
     {
         public DiagnosticData(DiagnosticSeverity severity, Location location, string message)
