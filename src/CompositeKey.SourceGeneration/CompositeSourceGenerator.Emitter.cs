@@ -44,14 +44,8 @@ public sealed partial class CompositeSourceGenerator
         {
             var keyParts = keySpec.Parts.ToList();
 
-            string formatString = KeyPartsToFormatString(keyParts);
-
-            writer.WriteLines($"""
-                               public override string ToString() => $"{formatString}";
-
-                               public string ToPartitionKeyString() => $"{formatString}";
-
-                               """);
+            WriteFormatMethodBodyForKeyParts(writer, "public override string ToString()", keyParts);
+            WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", keyParts);
 
             WriteParseMethodImplementation();
             WriteTryParseMethodImplementation();
@@ -139,18 +133,9 @@ public sealed partial class CompositeSourceGenerator
             var partitionKeyParts = keySpec.PartitionKeyParts.ToList();
             var sortKeyParts = keySpec.SortKeyParts.ToList();
 
-            string primaryKeyFormatString = KeyPartsToFormatString(keySpec.AllParts.ToList());
-            string partitionKeyFormatString = KeyPartsToFormatString(partitionKeyParts);
-            string sortKeyFormatString = KeyPartsToFormatString(sortKeyParts);
-
-            writer.WriteLines($"""
-                               public override string ToString() => $"{primaryKeyFormatString}";
-
-                               public string ToPartitionKeyString() => $"{partitionKeyFormatString}";
-
-                               public string ToSortKeyString() => $"{sortKeyFormatString}";
-
-                               """);
+            WriteFormatMethodBodyForKeyParts(writer, "public override string ToString()", keySpec.AllParts);
+            WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", partitionKeyParts);
+            WriteFormatMethodBodyForKeyParts(writer, "public string ToSortKeyString()", sortKeyParts);
 
             WriteParseMethodImplementation();
             WriteTryParseMethodImplementation();
@@ -463,21 +448,75 @@ public sealed partial class CompositeSourceGenerator
             return builder.ToString();
         }
 
-        private static string KeyPartsToFormatString(List<KeyPart> keyParts)
+        private static void WriteFormatMethodBodyForKeyParts(SourceWriter writer, string methodDeclaration, IReadOnlyList<KeyPart> keyParts)
         {
-            string formatString = string.Empty;
-            foreach (var keyPart in keyParts)
+            writer.WriteLine(methodDeclaration);
+            writer.WriteLine("{");
+            writer.Indentation++;
+
+            if (keyParts.All(kp => kp is DelimiterKeyPart or ConstantKeyPart or PropertyKeyPart { FormatType: FormatType.Guid, ExactLengthRequirement: true }))
             {
-                formatString += keyPart switch
+                int lengthRequired = keyParts.Sum(kp => kp switch
                 {
-                    DelimiterKeyPart d => d.Value,
-                    ConstantKeyPart c => c.Value,
-                    PropertyKeyPart p => $"{{{p.Property.Name}{(p.Format is not null ? $":{p.Format}" : string.Empty)}}}",
+                    DelimiterKeyPart => 1,
+                    ConstantKeyPart c => c.Value.Length,
+                    PropertyKeyPart c => c.LengthRequired,
                     _ => throw new InvalidOperationException()
-                };
+                });
+
+                writer.WriteLine($"return string.Create({lengthRequired}, this, static (destination, state) =>");
+                writer.WriteLine("{");
+                writer.Indentation++;
+
+                int position = 0;
+                foreach (var keyPart in keyParts)
+                {
+                    switch (keyPart)
+                    {
+                        case DelimiterKeyPart d:
+                            writer.WriteLine($"destination[{position}] = '{d.Value}';");
+                            position += 1;
+                            break;
+                        case ConstantKeyPart c:
+                            writer.WriteLine($"\"{c.Value}\".CopyTo(destination[{position}..{position + c.Value.Length}]);");
+                            position += c.Value.Length;
+                            break;
+                        case PropertyKeyPart p:
+                            writer.WriteLine($"if (!state.{p.Property.Name}.TryFormat(destination[{position}..{position + p.LengthRequired}], out _, \"{p.Format ?? "d"}\"))");
+                            writer.WriteLine("\tthrow new FormatException();");
+                            position += p.LengthRequired;
+                            break;
+                        default:
+                            throw new InvalidOperationException();
+                    }
+
+                    if (position != lengthRequired)
+                        writer.WriteLine();
+                }
+
+                writer.Indentation--;
+                writer.WriteLine("});");
+            }
+            else
+            {
+                string formatString = string.Empty;
+                foreach (var keyPart in keyParts)
+                {
+                    formatString += keyPart switch
+                    {
+                        DelimiterKeyPart d => d.Value,
+                        ConstantKeyPart c => c.Value,
+                        PropertyKeyPart p => $"{{{p.Property.Name}{(p.Format is not null ? $":{p.Format}" : string.Empty)}}}",
+                        _ => throw new InvalidOperationException()
+                    };
+                }
+
+                writer.WriteLine($"return $\"{formatString}\";");
             }
 
-            return formatString;
+            writer.Indentation--;
+            writer.WriteLine("}");
+            writer.WriteLine();
         }
 
         private void AddSource(string hintName, SourceText sourceText) => _context.AddSource(hintName, sourceText);
