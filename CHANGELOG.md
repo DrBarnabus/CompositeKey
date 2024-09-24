@@ -3,6 +3,15 @@
 All notable changes to this project will be automatically documented in this file.
 
 
+## [1.1.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.0.1...v1.1.0) (2024-09-24)
+
+
+### Features
+
+* Allow `[CompositeKey]` to be on a nested private record ([30c225a](https://github.com/DrBarnabus/CompositeKey/commit/30c225a3fa406f70cfd4bb757e71f55392eaf809))
+* Enable marking explicit constructor with `[CompositeKeyConstructor]` attribute ([739b60c](https://github.com/DrBarnabus/CompositeKey/commit/739b60c14366b689a96ff095d87d8336ad200ddc))
+* Optimization of generated `ToString`/`To...Key` methods when using Constant or Guid key parts ([556a2ba](https://github.com/DrBarnabus/CompositeKey/commit/556a2ba308d538ca7fbdde2ec259060cb4ba77b2))
+
 ### [1.0.1](https://github.com/DrBarnabus/CompositeKey/compare/v1.0.0...v1.0.1) (2024-08-30)
 
 
