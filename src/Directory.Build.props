@@ -7,7 +7,6 @@
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <WarningsAsErrors />
         <WarningsNotAsErrors>CS0618</WarningsNotAsErrors>
     </PropertyGroup>
 
