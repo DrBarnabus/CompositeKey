@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace CompositeKey.SourceGeneration.UnitTests;
 
-public static class CompositeSourceGeneratorTests
+public static class SourceGeneratorTests
 {
     [Fact]
     public static void ProgramThatDoesNotUseCompositeKey_ShouldStillSuccessfullyCompile()
@@ -21,70 +21,70 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void BasicPrimaryKey_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithBasicPrimaryKey();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void BasicCompositePrimaryKey_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithBasicCompositePrimaryKey();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void ClashingKeyNames_ShouldStillSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithClashingKeyNames();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void KeyHasInitOnlyProperties_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithInitOnlyProperties();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void KeyHasConstructableInitOnlyProperties_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithConstructableInitOnlyProperties();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void KeyHasRequiredProperties_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithRequiredProperties();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void KeyHasConstructorThatSetsRequiredProperties_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithConstructorThatSetsRequiredProperties();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void KeyHasNestedTypeDeclarations_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithNestedTypeDeclarations();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void KeyIsPrivateInNestedTypeDeclarations_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithNestedPrivateTypeDeclarations();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Theory]
@@ -108,7 +108,7 @@ public static class CompositeSourceGeneratorTests
 
         var parseOptions = CompilationHelper.CreateParseOptions(languageVersion);
         var compilation = CompilationHelper.CreateCompilation(Source, parseOptions: parseOptions);
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Theory]
@@ -128,7 +128,7 @@ public static class CompositeSourceGeneratorTests
 
         var parseOptions = CompilationHelper.CreateParseOptions(languageVersion);
         var compilation = CompilationHelper.CreateCompilation(Source, parseOptions: parseOptions);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -157,7 +157,7 @@ public static class CompositeSourceGeneratorTests
                           """;
 
         var compilation = CompilationHelper.CreateCompilation(source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -184,7 +184,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -217,7 +217,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -250,7 +250,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -287,7 +287,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
@@ -304,7 +304,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -333,7 +333,7 @@ public static class CompositeSourceGeneratorTests
                          """;
 
         var compilation = CompilationHelper.CreateCompilation(source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -360,7 +360,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -390,7 +390,7 @@ public static class CompositeSourceGeneratorTests
                          """;
 
         var compilation = CompilationHelper.CreateCompilation(source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -426,7 +426,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -464,7 +464,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -493,7 +493,7 @@ public static class CompositeSourceGeneratorTests
                               """;
 
         var compilation = CompilationHelper.CreateCompilation(Source);
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 
@@ -512,14 +512,14 @@ public static class CompositeSourceGeneratorTests
     public static void KeyHasExplicitlyMarkedConstructor_ShouldSuccessfullyCompile()
     {
         var compilation = CompilationHelper.CreateCompilationWithExplicitlyMarkedConstructor();
-        CompilationHelper.RunCompositeSourceGenerator(compilation);
+        CompilationHelper.RunSourceGenerator(compilation);
     }
 
     [Fact]
     public static void KeyHasMultipleExplicitlyMarkedConstructors_ShouldFailCompilation()
     {
         var compilation = CompilationHelper.CreateCompilationWithMultipleExplicitlyMarkedConstructors();
-        var result = CompilationHelper.RunCompositeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         var location = compilation.GetSymbolsWithName("BasicPrimaryKey").First().Locations[0];
 

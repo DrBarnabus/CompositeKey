@@ -5,13 +5,13 @@ using Microsoft.CodeAnalysis;
 
 namespace CompositeKey.SourceGeneration.UnitTests;
 
-public static class CompositeSourceGeneratorIncrementalTests
+public static class SourceGeneratorIncrementalTests
 {
     [Theory, MemberData(nameof(GetCompilationHelperFactories))]
     public static void CompilingTheSameSource_ShouldResultInStructurallyEqualModels(Func<Compilation> factory)
     {
-        var firstResult = CompilationHelper.RunCompositeSourceGenerator(factory(), disableDiagnosticValidation: true);
-        var secondResult = CompilationHelper.RunCompositeSourceGenerator(factory(), disableDiagnosticValidation: true);
+        var firstResult = CompilationHelper.RunSourceGenerator(factory(), disableDiagnosticValidation: true);
+        var secondResult = CompilationHelper.RunSourceGenerator(factory(), disableDiagnosticValidation: true);
 
         firstResult.GenerationSpecs.Length.Should().Be(secondResult.GenerationSpecs.Length);
 
@@ -55,8 +55,8 @@ public static class CompositeSourceGeneratorIncrementalTests
                                     }
                                     """;
 
-        var firstResult = CompilationHelper.RunCompositeSourceGenerator(CompilationHelper.CreateCompilation(FirstSource));
-        var secondResult = CompilationHelper.RunCompositeSourceGenerator(CompilationHelper.CreateCompilation(SecondSource));
+        var firstResult = CompilationHelper.RunSourceGenerator(CompilationHelper.CreateCompilation(FirstSource));
+        var secondResult = CompilationHelper.RunSourceGenerator(CompilationHelper.CreateCompilation(SecondSource));
 
         firstResult.GenerationSpecs.Should().HaveCount(1);
         var firstGenerationSpec = firstResult.GenerationSpecs[0];
@@ -94,8 +94,8 @@ public static class CompositeSourceGeneratorIncrementalTests
                                    public partial record BasicPrimaryKey(Guid DifferentPartName, Guid SecondPart, Guid ThirdPart);
                                    """;
 
-        var firstResult = CompilationHelper.RunCompositeSourceGenerator(CompilationHelper.CreateCompilation(FirstSource));
-        var secondResult = CompilationHelper.RunCompositeSourceGenerator(CompilationHelper.CreateCompilation(SecondSource));
+        var firstResult = CompilationHelper.RunSourceGenerator(CompilationHelper.CreateCompilation(FirstSource));
+        var secondResult = CompilationHelper.RunSourceGenerator(CompilationHelper.CreateCompilation(SecondSource));
 
         firstResult.GenerationSpecs.Should().HaveCount(1);
         var firstGenerationSpec = firstResult.GenerationSpecs[0];
@@ -111,7 +111,7 @@ public static class CompositeSourceGeneratorIncrementalTests
     [Theory, MemberData(nameof(GetCompilationHelperFactories))]
     public static void SourceGenerationSpecModel_ShouldNotEncapsulateSymbolsOrCompilationData(Func<Compilation> factory)
     {
-        var result = CompilationHelper.RunCompositeSourceGenerator(factory(), disableDiagnosticValidation: true);
+        var result = CompilationHelper.RunSourceGenerator(factory(), disableDiagnosticValidation: true);
         WalkObjectGraphAndAssert(result.GenerationSpecs, []);
         WalkObjectGraphAndAssert(result.Diagnostics, []);
 
@@ -146,7 +146,7 @@ public static class CompositeSourceGeneratorIncrementalTests
     {
         var compilation = factory();
 
-        GeneratorDriver generatorDriver = CompilationHelper.CreateCompositeSourceGeneratorDriver(compilation);
+        GeneratorDriver generatorDriver = CompilationHelper.CreateSourceGeneratorDriver(compilation);
 
         generatorDriver = generatorDriver.RunGenerators(compilation);
         var result = generatorDriver.GetRunResult().Results[0];
@@ -190,7 +190,7 @@ public static class CompositeSourceGeneratorIncrementalTests
         return;
 
         static IncrementalGeneratorRunStep[]? GetGeneratorRunSteps(GeneratorRunResult result) =>
-            !result.TrackedSteps.TryGetValue(CompositeSourceGenerator.GenerationSpecTrackingName, out var steps) ? null : steps.ToArray();
+            !result.TrackedSteps.TryGetValue(SourceGenerator.GenerationSpecTrackingName, out var steps) ? null : steps.ToArray();
     }
 
     [Fact]
@@ -220,12 +220,12 @@ public static class CompositeSourceGeneratorIncrementalTests
                                       """;
 
         var compilation = CompilationHelper.CreateCompilation(InitialSource);
-        GeneratorDriver generatorDriver = CompilationHelper.CreateCompositeSourceGeneratorDriver(compilation);
+        GeneratorDriver generatorDriver = CompilationHelper.CreateSourceGeneratorDriver(compilation);
 
         generatorDriver = generatorDriver.RunGenerators(compilation);
         var result = generatorDriver.GetRunResult().Results[0];
 
-        foreach (var step in result.TrackedSteps[CompositeSourceGenerator.GenerationSpecTrackingName])
+        foreach (var step in result.TrackedSteps[SourceGenerator.GenerationSpecTrackingName])
         {
             foreach ((var source, int outputIndex) in step.Inputs)
                 source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.New);
@@ -239,7 +239,7 @@ public static class CompositeSourceGeneratorIncrementalTests
         generatorDriver = generatorDriver.RunGenerators(compilation);
         result = generatorDriver.GetRunResult().Results[0];
 
-        foreach (var step in result.TrackedSteps[CompositeSourceGenerator.GenerationSpecTrackingName])
+        foreach (var step in result.TrackedSteps[SourceGenerator.GenerationSpecTrackingName])
         {
             foreach ((var source, int outputIndex) in step.Inputs)
                 source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.Modified);
@@ -273,12 +273,12 @@ public static class CompositeSourceGeneratorIncrementalTests
                                       """;
 
         var compilation = CompilationHelper.CreateCompilation(InitialSource);
-        GeneratorDriver generatorDriver = CompilationHelper.CreateCompositeSourceGeneratorDriver(compilation);
+        GeneratorDriver generatorDriver = CompilationHelper.CreateSourceGeneratorDriver(compilation);
 
         generatorDriver = generatorDriver.RunGenerators(compilation);
         var result = generatorDriver.GetRunResult().Results[0];
 
-        foreach (var step in result.TrackedSteps[CompositeSourceGenerator.GenerationSpecTrackingName])
+        foreach (var step in result.TrackedSteps[SourceGenerator.GenerationSpecTrackingName])
         {
             foreach ((var source, int outputIndex) in step.Inputs)
                 source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.New);
@@ -292,7 +292,7 @@ public static class CompositeSourceGeneratorIncrementalTests
         generatorDriver = generatorDriver.RunGenerators(compilation);
         result = generatorDriver.GetRunResult().Results[0];
 
-        foreach (var step in result.TrackedSteps[CompositeSourceGenerator.GenerationSpecTrackingName])
+        foreach (var step in result.TrackedSteps[SourceGenerator.GenerationSpecTrackingName])
         {
             foreach ((var source, int outputIndex) in step.Inputs)
                 source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.Modified);

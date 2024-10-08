@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace CompositeKey.SourceGeneration;
 
 [Generator]
-public sealed partial class CompositeSourceGenerator : IIncrementalGenerator
+public sealed partial class SourceGenerator : IIncrementalGenerator
 {
     public const string GenerationSpecTrackingName = nameof(GenerationSpec);
 
