@@ -291,8 +291,8 @@ public static class CompilationHelper
 
         public static partial class OutermostClass
         {
-            [CompositeKey("{FirstPart}#{SecondPart}#{ThirdPart}")]
-            private partial record BasicPrimaryKey(Guid FirstPart, Guid SecondPart, Guid ThirdPart);
+            [CompositeKey("{FirstPart}#Constant#{SecondPart}")]
+            private partial record BasicPrimaryKey(Guid FirstPart, Guid SecondPart);
         }
         """);
 
