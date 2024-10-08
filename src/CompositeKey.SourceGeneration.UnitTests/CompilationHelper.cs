@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace CompositeKey.SourceGeneration.UnitTests;
 
-public sealed record CompositeSourceGeneratorResult
+public sealed record SourceGeneratorResult
 {
     public required Compilation OutputCompilation { get; set; }
 
@@ -49,10 +49,10 @@ public static class CompilationHelper
         return CSharpSyntaxTree.ParseText(source, parseOptions ?? DefaultParseOptions);
     }
 
-    public static CSharpGeneratorDriver CreateCompositeSourceGeneratorDriver(
-        Compilation compilation, CompositeSourceGenerator? generator = null)
+    public static CSharpGeneratorDriver CreateSourceGeneratorDriver(
+        Compilation compilation, SourceGenerator? generator = null)
     {
-        generator ??= new CompositeSourceGenerator();
+        generator ??= new SourceGenerator();
 
         var parseOptions = compilation.SyntaxTrees
             .OfType<CSharpSyntaxTree>()
@@ -65,12 +65,12 @@ public static class CompilationHelper
             driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, true));
     }
 
-    public static CompositeSourceGeneratorResult RunCompositeSourceGenerator(Compilation compilation, bool disableDiagnosticValidation = false)
+    public static SourceGeneratorResult RunSourceGenerator(Compilation compilation, bool disableDiagnosticValidation = false)
     {
         var generationSpecs = ImmutableArray<GenerationSpec>.Empty;
-        var generator = new CompositeSourceGenerator { OnSourceEmitting = specs => generationSpecs = specs };
+        var generator = new SourceGenerator { OnSourceEmitting = specs => generationSpecs = specs };
 
-        var driver = CreateCompositeSourceGeneratorDriver(compilation, generator);
+        var driver = CreateSourceGeneratorDriver(compilation, generator);
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
         if (!disableDiagnosticValidation)
@@ -79,7 +79,7 @@ public static class CompilationHelper
             diagnostics.Where(d => d.Severity > DiagnosticSeverity.Info).Should().BeEmpty();
         }
 
-        return new CompositeSourceGeneratorResult()
+        return new SourceGeneratorResult()
         {
             OutputCompilation = outputCompilation,
             Diagnostics = diagnostics,

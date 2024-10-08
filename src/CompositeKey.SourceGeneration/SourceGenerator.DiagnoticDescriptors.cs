@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace CompositeKey.SourceGeneration;
 
-public sealed partial class CompositeSourceGenerator
+public sealed partial class SourceGenerator
 {
     internal static class DiagnosticDescriptors
     {

@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace CompositeKey.SourceGeneration;
 
-public sealed partial class CompositeSourceGenerator
+public sealed partial class SourceGenerator
 {
     private sealed class Emitter(SourceProductionContext context)
     {

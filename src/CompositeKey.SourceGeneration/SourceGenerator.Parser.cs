@@ -14,7 +14,7 @@ namespace CompositeKey.SourceGeneration;
 
 public sealed record CompositeKeyAttributeValues(string TemplateString, char? PrimaryKeySeparator);
 
-public sealed partial class CompositeSourceGenerator
+public sealed partial class SourceGenerator
 {
     private const string CompositeKeyAttributeFullName = "CompositeKey.CompositeKeyAttribute";
 
