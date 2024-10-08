@@ -5,3 +5,6 @@
 # JetBrains Rider
 .idea
 *.DotSettings.user
+
+# SourceGenerator Launch Settings
+src/CompositeKey.SourceGeneration/Properties/launchSettings.json
