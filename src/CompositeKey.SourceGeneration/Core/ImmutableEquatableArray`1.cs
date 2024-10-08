@@ -27,7 +27,7 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
         int hash = 0;
         foreach (var value in _values)
         {
-            hash = Combine(hash, value is null ? 0 : value.GetHashCode());
+            hash = Combine(hash, value.GetHashCode());
         }
 
         return hash;
