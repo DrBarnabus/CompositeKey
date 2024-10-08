@@ -25,7 +25,7 @@
         <value>The CompositeKey source generator does not support C# {0}. Please use language version {1} or greater.</value>
     </data>
     <data name="UnsupportedCompositeTypeTitle" xml:space="preserve">
-        <value>The type annotated with the 'CompositeKey' attribtue is not supported.</value>
+        <value>The type annotated with the 'CompositeKey' attribute is not supported.</value>
     </data>
     <data name="UnsupportedCompositeTypeMessageFormat" xml:space="preserve">
         <value>The 'CompositeKey' type '{0}' is not currently supported, at present, only record types are supported.</value>
@@ -37,7 +37,7 @@
         <value>The 'CompositeKey' type '{0}' (and all containing types) must be partial to kick off source generation.</value>
     </data>
     <data name="NoObviousDefaultConstructorTitle" xml:space="preserve">
-        <value>The type annotated with the 'CompositeKey' attribtue has no obvious constructor.</value>
+        <value>The type annotated with the 'CompositeKey' attribute has no obvious constructor.</value>
     </data>
     <data name="NoObviousDefaultConstructorMessageFormat" xml:space="preserve">
         <value>The 'CompositeKey' type '{0}' has no obvious constructor, at present, only types with either a single constructor or types with a parameterless constructor are supported.</value>
