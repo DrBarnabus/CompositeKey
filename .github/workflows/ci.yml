@@ -3,8 +3,11 @@ name: CI
 on:
   push:
     branches: ['main']
+
   pull_request:
     branches: ['main']
+
+  workflow_dispatch:
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
@@ -57,13 +60,13 @@ jobs:
       - name: Restore
         run: dotnet restore --locked-mode
       - name: Build
-        run: dotnet build -c Release --no-restore -p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
+        run: dotnet build -c Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} -p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
       - name: Unit Test
         run: dotnet test src/CompositeKey.SourceGeneration.UnitTests -c Release --no-restore --no-build --collect:"XPlat Code Coverage" --results-directory unit-test-results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
       - name: Functional Test
         run: dotnet test src/CompositeKey.SourceGeneration.FunctionalTests -c Release --no-restore --no-build
       - name: Pack
-        run: dotnet pack src/CompositeKey -c Release --no-build -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} -o _output
+        run: dotnet pack src/CompositeKey -c Release --no-build -p:Version=${{ steps.gitversion.outputs.semVer }} -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} -o _output
 
       - name: Upload Coverage
         uses: codecov/codecov-action@v4
@@ -71,8 +74,14 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./unit-test-results/*/coverage.opencover.xml
 
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: ${{ github.workspace }}/_output/*.nupkg
+
       - name: Push
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch' && github.event.ref == 'refs/heads/main'
         run: |
           dotnet nuget push _output/*.nupkg --source "GitHub" --api-key ${{ secrets.GITHUB_TOKEN }}
           dotnet nuget push _output/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
