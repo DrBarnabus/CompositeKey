@@ -39,6 +39,13 @@ public static class SourceGeneratorTests
     }
 
     [Fact]
+    public static void InvariantCultureDisabled_ShouldSuccessfullyGenerateSource()
+    {
+        var compilation = CompilationHelper.CreateCompilationWithInvariantCultureDisabled();
+        CompilationHelper.RunSourceGenerator(compilation);
+    }
+
+    [Fact]
     public static void ClashingKeyNames_ShouldStillSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithClashingKeyNames();

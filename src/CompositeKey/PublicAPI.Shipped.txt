@@ -2,6 +2,8 @@
 
 CompositeKey.CompositeKeyAttribute
 CompositeKey.CompositeKeyAttribute.CompositeKeyAttribute(string! template) -> void
+CompositeKey.CompositeKeyAttribute.InvariantCulture.get -> bool
+CompositeKey.CompositeKeyAttribute.InvariantCulture.set -> void
 CompositeKey.CompositeKeyAttribute.PrimaryKeySeparator.get -> char
 CompositeKey.CompositeKeyAttribute.PrimaryKeySeparator.set -> void
 CompositeKey.CompositeKeyAttribute.Template.get -> string!
