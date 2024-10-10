@@ -3,6 +3,18 @@
 All notable changes to this project will be automatically documented in this file.
 
 
+## [1.2.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.1.0...v1.2.0) (2024-10-10)
+
+
+### Features
+
+* Add option to disable/enable `InvariantCulture` ([#9](https://github.com/DrBarnabus/CompositeKey/issues/9)) ([b61a4a4](https://github.com/DrBarnabus/CompositeKey/commit/b61a4a4ba7facd11c4ff17e8e72baecdb61eada0))
+
+
+### Bug Fixes
+
+* Fix typo in UnsupportedType and NoObviousConstructor diagnostics ([#7](https://github.com/DrBarnabus/CompositeKey/issues/7)) ([3f1f9a0](https://github.com/DrBarnabus/CompositeKey/commit/3f1f9a02b9a7c89d2b08deee8e47c36af1eba6d2))
+
 ## [1.1.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.0.1...v1.1.0) (2024-09-24)
 
 
