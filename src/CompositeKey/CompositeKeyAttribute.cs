@@ -34,4 +34,11 @@ sealed class CompositeKeyAttribute(string template) : Attribute
     /// </remarks>
     /// <example>|</example>
     public char PrimaryKeySeparator { get; set; }
+
+    /// <summary>
+    /// Optional, when enabled the formatting of values in generated ToString/Format methods will use
+    /// <see cref="System.Globalization.CultureInfo.InvariantCulture"/> instead of the default/current culture.
+    /// </summary>
+    /// <remarks>This is enabled by default, to use the current culture instead set this property to <c>false</c>.</remarks>
+    public bool InvariantCulture { get; set; } = true;
 }

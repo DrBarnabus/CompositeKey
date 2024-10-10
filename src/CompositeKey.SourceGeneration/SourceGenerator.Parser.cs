@@ -12,7 +12,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CompositeKey.SourceGeneration;
 
-public sealed record CompositeKeyAttributeValues(string TemplateString, char? PrimaryKeySeparator);
+public sealed record CompositeKeyAttributeValues(string TemplateString, char? PrimaryKeySeparator, bool InvariantCulture);
 
 public sealed partial class SourceGenerator
 {
@@ -96,7 +96,7 @@ public sealed partial class SourceGenerator
                 }
 
                 // If we reach this branch then it's just a Primary Key
-                key = new PrimaryKeySpec(keyParts.ToImmutableEquatableArray());
+                key = new PrimaryKeySpec(compositeKeyAttributeValues!.InvariantCulture, keyParts.ToImmutableEquatableArray());
             }
             else
             {
@@ -116,6 +116,7 @@ public sealed partial class SourceGenerator
                 }
 
                 key = new CompositePrimaryKeySpec(
+                    compositeKeyAttributeValues!.InvariantCulture,
                     keyParts.ToImmutableEquatableArray(),
                     partitionKeyParts.ToImmutableEquatableArray(),
                     primaryDelimiterKeyPart,
@@ -148,7 +149,7 @@ public sealed partial class SourceGenerator
             CompositeKeyAttributeValues compositeKeyAttributeValues,
             List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> properties)
         {
-            (string templateString, char? primaryKeySeparator) = compositeKeyAttributeValues;
+            (string templateString, char? primaryKeySeparator, _) = compositeKeyAttributeValues;
 
             var templateStringTokenizer = new TemplateStringTokenizer(primaryKeySeparator);
             var templateTokens = templateStringTokenizer.Tokenize(templateString.AsSpan());
@@ -413,6 +414,7 @@ public sealed partial class SourceGenerator
                     return null;
 
                 char? primaryKeySeparator = null;
+                bool? invariantCulture = null;
                 foreach (var namedArgument in attributeData.NamedArguments)
                 {
                     (string? key, var value) = (namedArgument.Key, namedArgument.Value);
@@ -423,12 +425,16 @@ public sealed partial class SourceGenerator
                             primaryKeySeparator = (char?)value.Value;
                             break;
 
+                        case nameof(CompositeKeyAttribute.InvariantCulture):
+                            invariantCulture = (bool?)value.Value;
+                            break;
+
                         default:
                             throw new InvalidOperationException();
                     }
                 }
 
-                return new CompositeKeyAttributeValues(templateString, primaryKeySeparator);
+                return new CompositeKeyAttributeValues(templateString, primaryKeySeparator, invariantCulture ?? true);
             }
         }
 

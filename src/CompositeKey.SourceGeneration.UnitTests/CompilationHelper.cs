@@ -118,6 +118,16 @@ public static class CompilationHelper
         public partial record BasicPrimaryKey(Guid FirstPart, string SecondPart, CustomEnum ThirdPart);
         """);
 
+    public static Compilation CreateCompilationWithInvariantCultureDisabled() => CreateCompilation("""
+        using System;
+        using CompositeKey;
+
+        namespace UnitTests;
+
+        [CompositeKey("{FirstPart:B}#{SecondPart}|{ThirdPart}", PrimaryKeySeparator = '|', InvariantCulture = false)]
+        public partial record BasicPrimaryKey(Guid FirstPart, double SecondPart, string ThirdPart);
+        """);
+
     public static Compilation CreateCompilationWithClashingKeyNames() => CreateCompilation("""
         using System;
         using CompositeKey;

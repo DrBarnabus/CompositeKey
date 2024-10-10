@@ -19,6 +19,7 @@ public sealed partial class SourceGenerator
 
         private const string NotNullWhen = "global::System.Diagnostics.CodeAnalysis.NotNullWhen";
         private const string MaybeNullWhen = "global::System.Diagnostics.CodeAnalysis.MaybeNullWhen";
+        private const string InvariantCulture = "global::System.Globalization.CultureInfo.InvariantCulture";
 
         private readonly SourceProductionContext _context = context;
 
@@ -44,8 +45,8 @@ public sealed partial class SourceGenerator
         {
             var keyParts = keySpec.Parts.ToList();
 
-            WriteFormatMethodBodyForKeyParts(writer, "public override string ToString()", keyParts);
-            WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", keyParts);
+            WriteFormatMethodBodyForKeyParts(writer, "public override string ToString()", keyParts, keySpec.InvariantFormatting);
+            WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", keyParts, keySpec.InvariantFormatting);
 
             WriteParseMethodImplementation();
             WriteTryParseMethodImplementation();
@@ -133,9 +134,9 @@ public sealed partial class SourceGenerator
             var partitionKeyParts = keySpec.PartitionKeyParts.ToList();
             var sortKeyParts = keySpec.SortKeyParts.ToList();
 
-            WriteFormatMethodBodyForKeyParts(writer, "public override string ToString()", keySpec.AllParts);
-            WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", partitionKeyParts);
-            WriteFormatMethodBodyForKeyParts(writer, "public string ToSortKeyString()", sortKeyParts);
+            WriteFormatMethodBodyForKeyParts(writer, "public override string ToString()", keySpec.AllParts, keySpec.InvariantFormatting);
+            WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", partitionKeyParts, keySpec.InvariantFormatting);
+            WriteFormatMethodBodyForKeyParts(writer, "public string ToSortKeyString()", sortKeyParts, keySpec.InvariantFormatting);
 
             WriteParseMethodImplementation();
             WriteTryParseMethodImplementation();
@@ -448,7 +449,8 @@ public sealed partial class SourceGenerator
             return builder.ToString();
         }
 
-        private static void WriteFormatMethodBodyForKeyParts(SourceWriter writer, string methodDeclaration, IReadOnlyList<KeyPart> keyParts)
+        private static void WriteFormatMethodBodyForKeyParts(
+            SourceWriter writer, string methodDeclaration, IReadOnlyList<KeyPart> keyParts, bool invariantFormatting)
         {
             writer.WriteLine(methodDeclaration);
             writer.WriteLine("{");
@@ -481,8 +483,9 @@ public sealed partial class SourceGenerator
                             writer.WriteLine($"\"{c.Value}\".CopyTo(destination[{position}..{position + c.Value.Length}]);");
                             position += c.Value.Length;
                             break;
-                        case PropertyKeyPart p:
-                            writer.WriteLine($"if (!state.{p.Property.Name}.TryFormat(destination[{position}..{position + p.LengthRequired}], out _, \"{p.Format ?? "d"}\"))");
+                        case PropertyKeyPart { FormatType: FormatType.Guid } p:
+                            string formatProvider = invariantFormatting ? InvariantCulture : "null";
+                            writer.WriteLine($"if (!((ISpanFormattable)state.{p.Property.Name}).TryFormat(destination[{position}..{position + p.LengthRequired}], out _, \"{p.Format ?? "d"}\", {formatProvider}))");
                             writer.WriteLine("\tthrow new FormatException();");
                             position += p.LengthRequired;
                             break;
@@ -511,7 +514,9 @@ public sealed partial class SourceGenerator
                     };
                 }
 
-                writer.WriteLine($"return $\"{formatString}\";");
+                writer.WriteLine(invariantFormatting
+                    ? $"return string.Create({InvariantCulture}, $\"{formatString}\");"
+                    : $"return $\"{formatString}\";");
             }
 
             writer.Indentation--;
