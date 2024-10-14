@@ -112,10 +112,22 @@ public static class CompilationHelper
 
         namespace UnitTests;
 
-        public enum CustomEnum { One = 1, Two = 2, Three = 3 };
+        public enum CustomEnum { One, Two, Three };
 
         [CompositeKey("{FirstPart:B}#{SecondPart}|ConstantValue#{ThirdPart}", PrimaryKeySeparator = '|')]
         public partial record BasicPrimaryKey(Guid FirstPart, string SecondPart, CustomEnum ThirdPart);
+        """);
+
+    public static Compilation CreateCompilationWithBasicNonSequentialEnumPrimaryKey() => CreateCompilation("""
+        using System;
+        using CompositeKey;
+
+        namespace UnitTests;
+
+        public enum CustomEnum { One = 3, Two = 2, Three = 1 };
+
+        [CompositeKey("{FirstPart:B}#{SecondPart}|ConstantValue#{ThirdPart}", PrimaryKeySeparator = '|')]
+        public partial record BasicNonSequentialEnum(Guid FirstPart, string SecondPart, CustomEnum ThirdPart);
         """);
 
     public static Compilation CreateCompilationWithInvariantCultureDisabled() => CreateCompilation("""

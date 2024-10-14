@@ -243,4 +243,38 @@ public static class PrimaryKeyTests
     ];
 
     #endregion
+
+    #region PrimaryKeyWithFastPathFormatting
+
+    [Theory, AutoData]
+    public static void PrimaryKeyWithFastPathFormatting_RoundTripToStringAndParse_ShouldResultInEquivalentKey(
+        PrimaryKeyWithFastPathFormatting primaryKey)
+    {
+        var result = PrimaryKeyWithFastPathFormatting.Parse(primaryKey.ToString());
+
+        result.Should().NotBeNull();
+        result.Should().BeEquivalentTo(primaryKey);
+    }
+
+    [Theory, AutoData]
+    public static void PrimaryKeyWithFastPathFormatting_ToString_ShouldReturnCorrectlyFormattedString(
+        PrimaryKeyWithFastPathFormatting primaryKey)
+    {
+        string result = primaryKey.ToString();
+
+        result.Should().NotBeNull();
+        result.Should().Be($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.AnotherGuid}");
+    }
+
+    [Theory, AutoData]
+    public static void PrimaryKeyWithFastPathFormatting_ToPartitionKeyString_ShouldReturnCorrectlyFormattedString(
+        PrimaryKeyWithFastPathFormatting primaryKey)
+    {
+        string result = primaryKey.ToPartitionKeyString();
+
+        result.Should().NotBeNull();
+        result.Should().Be($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.AnotherGuid}");
+    }
+
+    #endregion
 }
