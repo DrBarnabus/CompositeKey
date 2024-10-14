@@ -7,4 +7,5 @@ public sealed record PropertySpec(
     bool IsRequired,
     bool HasGetter,
     bool HasSetter,
-    bool IsInitOnlySetter);
+    bool IsInitOnlySetter,
+    EnumSpec? EnumSpec);

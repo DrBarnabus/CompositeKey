@@ -39,6 +39,13 @@ public static class SourceGeneratorTests
     }
 
     [Fact]
+    public static void BasicNonSequentialEnumPrimaryKey_ShouldSuccessfullyGenerateSource()
+    {
+        var compilation = CompilationHelper.CreateCompilationWithBasicNonSequentialEnumPrimaryKey();
+        CompilationHelper.RunSourceGenerator(compilation);
+    }
+
+    [Fact]
     public static void InvariantCultureDisabled_ShouldSuccessfullyGenerateSource()
     {
         var compilation = CompilationHelper.CreateCompilationWithInvariantCultureDisabled();

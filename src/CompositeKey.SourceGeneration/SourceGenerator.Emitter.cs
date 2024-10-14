@@ -36,6 +36,10 @@ public sealed partial class SourceGenerator
                 EmitForCompositePrimaryKey(writer, generationSpec.TargetType, compositePrimaryKeySpec);
 
             EmitCommonImplementations(writer, generationSpec.TargetType);
+            writer.EndBlock();
+
+            foreach (var enumSpec in generationSpec.TargetType.Properties.Select(p => p.EnumSpec).Where(es => es is not null))
+                EnumGenerationHelper.EmitEnumHelperClass(writer, enumSpec!);
 
             string hintName = $"{generationSpec.TargetType.Type.FullyQualifiedName.Replace("global::", string.Empty)}.g.cs";
             AddSource(hintName, CompleteSourceFileAndReturnSourceText(writer));
@@ -81,8 +85,7 @@ public sealed partial class SourceGenerator
 
                 writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
 
-                writer.Indentation--;
-                writer.WriteLine("}");
+                writer.EndBlock();
                 writer.WriteLine();
             }
 
@@ -91,7 +94,7 @@ public sealed partial class SourceGenerator
                 writer.WriteLines($$"""
                                     public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
-                                        if(primaryKey is null)
+                                        if (primaryKey is null)
                                         {
                                             result = null;
                                             return false;
@@ -123,8 +126,7 @@ public sealed partial class SourceGenerator
                                    return true;
                                    """);
 
-                writer.Indentation--;
-                writer.WriteLine("}");
+                writer.EndBlock();
                 writer.WriteLine();
             }
         }
@@ -175,8 +177,7 @@ public sealed partial class SourceGenerator
 
                 writer.WriteLine("return Parse(primaryKey[primaryKeyPartRanges[0]], primaryKey[primaryKeyPartRanges[1]]);");
 
-                writer.Indentation--;
-                writer.WriteLine("}");
+                writer.EndBlock();
                 writer.WriteLine();
             }
 
@@ -185,7 +186,7 @@ public sealed partial class SourceGenerator
                 writer.WriteLines($$"""
                                     public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
-                                        if(primaryKey is null)
+                                        if (primaryKey is null)
                                         {
                                             result = null;
                                             return false;
@@ -205,8 +206,7 @@ public sealed partial class SourceGenerator
 
                 writer.WriteLine("return TryParse(primaryKey[primaryKeyPartRanges[0]], primaryKey[primaryKeyPartRanges[1]], out result);");
 
-                writer.Indentation--;
-                writer.WriteLine("}");
+                writer.EndBlock();
                 writer.WriteLine();
             }
 
@@ -248,8 +248,7 @@ public sealed partial class SourceGenerator
 
                 writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
 
-                writer.Indentation--;
-                writer.WriteLine("}");
+                writer.EndBlock();
                 writer.WriteLine();
             }
 
@@ -299,8 +298,7 @@ public sealed partial class SourceGenerator
                                    return true;
                                    """);
 
-                writer.Indentation--;
-                writer.WriteLine("}");
+                writer.EndBlock();
                 writer.WriteLine();
             }
         }
@@ -311,7 +309,7 @@ public sealed partial class SourceGenerator
                                 /// <inheritdoc cref="IFormattable.ToString(string?, IFormatProvider?)" />
                                 string IFormattable.ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
-                                /// <inheritdoc cref="IParsable{{{targetTypeSpec.TypeName}}.Parse(string, IFormatProvider?)" />
+                                /// <inheritdoc cref="IParsable{{{targetTypeSpec.TypeName}}}.Parse(string, IFormatProvider?)" />
                                 static {{targetTypeSpec.TypeName}} IParsable<{{targetTypeSpec.TypeName}}>.Parse(string s, IFormatProvider? provider) => Parse(s);
 
                                 /// <inheritdoc cref="IParsable{{{targetTypeSpec.TypeName}}}.TryParse(string?, IFormatProvider?, out {{targetTypeSpec.TypeName}})" />
@@ -397,8 +395,11 @@ public sealed partial class SourceGenerator
                         break;
 
                     case PropertyKeyPart { ParseType: ParseType.Enum } part:
+                        if (part.Property.EnumSpec is null)
+                            throw new InvalidOperationException($"{nameof(part.Property.EnumSpec)} is null");
+
                         writer.WriteLines($"""
-                                           if (!Enum.TryParse<{part.Property.Type.FullyQualifiedName}>({partInputVariable}, out var {part.Property.CamelCaseName}))
+                                           if (!{part.Property.EnumSpec.Name}Helper.TryParse({partInputVariable}, out var {part.Property.CamelCaseName}))
                                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
                                            """);
@@ -452,48 +453,72 @@ public sealed partial class SourceGenerator
         private static void WriteFormatMethodBodyForKeyParts(
             SourceWriter writer, string methodDeclaration, IReadOnlyList<KeyPart> keyParts, bool invariantFormatting)
         {
-            writer.WriteLine(methodDeclaration);
-            writer.WriteLine("{");
-            writer.Indentation++;
+            writer.StartBlock(methodDeclaration);
 
-            if (keyParts.All(kp => kp is DelimiterKeyPart or ConstantKeyPart or PropertyKeyPart { FormatType: FormatType.Guid, ExactLengthRequirement: true }))
+            if (keyParts.All(kp => kp is
+                    DelimiterKeyPart
+                    or ConstantKeyPart
+                    or PropertyKeyPart { FormatType: FormatType.Guid, ExactLengthRequirement: true }
+                    or PropertyKeyPart { FormatType: FormatType.Enum, Format: "g" }))
             {
-                int lengthRequired = keyParts.Sum(kp => kp switch
-                {
-                    DelimiterKeyPart => 1,
-                    ConstantKeyPart c => c.Value.Length,
-                    PropertyKeyPart c => c.LengthRequired,
-                    _ => throw new InvalidOperationException()
-                });
+                string lengthRequired = keyParts
+                    .Where(kp => kp.ExactLengthRequirement)
+                    .Sum(kp => kp switch
+                    {
+                        DelimiterKeyPart => 1,
+                        ConstantKeyPart c => c.Value.Length,
+                        PropertyKeyPart p => p.LengthRequired,
+                        _ => throw new InvalidOperationException()
+                    })
+                    .ToString();
 
-                writer.WriteLine($"return string.Create({lengthRequired}, this, static (destination, state) =>");
-                writer.WriteLine("{");
-                writer.Indentation++;
-
-                int position = 0;
-                foreach (var keyPart in keyParts)
+                foreach (var keyPart in keyParts.Where(kp => !kp.ExactLengthRequirement))
                 {
+                    if (lengthRequired.Length != 0)
+                        lengthRequired += " + ";
+
+                    lengthRequired += keyPart switch
+                    {
+                        PropertyKeyPart { FormatType: FormatType.Enum, Property.EnumSpec: not null } p => $"{p.Property.EnumSpec.Name}Helper.GetFormattedLength({p.Property.Name})",
+                        _ => throw new InvalidOperationException()
+                    };
+                }
+
+                writer.StartBlock($"return string.Create({lengthRequired}, this, static (destination, state) =>");
+
+                writer.WriteLine("int position = 0;");
+                writer.WriteLine("int charsWritten = 0;");
+                writer.WriteLine();
+
+                for (int i = 0; i < keyParts.Count; i++)
+                {
+                    var keyPart = keyParts[i];
                     switch (keyPart)
                     {
                         case DelimiterKeyPart d:
-                            writer.WriteLine($"destination[{position}] = '{d.Value}';");
-                            position += 1;
+                            writer.WriteLine($"destination[position] = '{d.Value}';");
+                            writer.WriteLine("position += 1;");
                             break;
                         case ConstantKeyPart c:
-                            writer.WriteLine($"\"{c.Value}\".CopyTo(destination[{position}..{position + c.Value.Length}]);");
-                            position += c.Value.Length;
+                            writer.WriteLine($"\"{c.Value}\".CopyTo(destination[position..]);");
+                            writer.WriteLine($"position += {c.Value.Length};");
                             break;
                         case PropertyKeyPart { FormatType: FormatType.Guid } p:
                             string formatProvider = invariantFormatting ? InvariantCulture : "null";
-                            writer.WriteLine($"if (!((ISpanFormattable)state.{p.Property.Name}).TryFormat(destination[{position}..{position + p.LengthRequired}], out _, \"{p.Format ?? "d"}\", {formatProvider}))");
-                            writer.WriteLine("\tthrow new FormatException();");
-                            position += p.LengthRequired;
+                            writer.WriteLine($"if (!((ISpanFormattable)state.{p.Property.Name}).TryFormat(destination[position..], out charsWritten, \"{p.Format ?? "d"}\", {formatProvider}))");
+                            writer.WriteLine("\tthrow new FormatException();\n");
+                            writer.WriteLine("position += charsWritten;");
+                            break;
+                        case PropertyKeyPart { FormatType: FormatType.Enum, Property.EnumSpec: not null } p:
+                            writer.WriteLine($"if (!{p.Property.EnumSpec.Name}Helper.TryFormat(state.{p.Property.Name}, destination[position..], out charsWritten))");
+                            writer.WriteLine("\tthrow new FormatException();\n");
+                            writer.WriteLine("position += charsWritten;");
                             break;
                         default:
                             throw new InvalidOperationException();
                     }
 
-                    if (position != lengthRequired)
+                    if (i != keyParts.Count - 1)
                         writer.WriteLine();
                 }
 
@@ -519,8 +544,7 @@ public sealed partial class SourceGenerator
                     : $"return $\"{formatString}\";");
             }
 
-            writer.Indentation--;
-            writer.WriteLine("}");
+            writer.EndBlock();
             writer.WriteLine();
         }
 
@@ -545,29 +569,19 @@ public sealed partial class SourceGenerator
                               """);
 
             if (generationSpec.TargetType.Namespace is not null)
-            {
-                writer.WriteLine($"namespace {generationSpec.TargetType.Namespace}");
-                writer.WriteLine("{");
-                writer.Indentation++;
-            }
+                writer.StartBlock($"namespace {generationSpec.TargetType.Namespace}");
 
             var nestedTypeDeclarations = generationSpec.TargetType.TypeDeclarations;
             Debug.Assert(nestedTypeDeclarations.Count > 0);
 
             for (int i = nestedTypeDeclarations.Count - 1; i > 0; i--)
-            {
-                writer.WriteLine(nestedTypeDeclarations[i]);
-                writer.WriteLine("{");
-                writer.Indentation++;
-            }
+                writer.StartBlock(nestedTypeDeclarations[i]);
 
             // Annotate context class with the GeneratedCodeAttribute
             writer.WriteLine($"""[global::System.CodeDom.Compiler.GeneratedCodeAttribute("{AssemblyName}", "{AssemblyVersion}")]""");
 
             // Emit the main class declaration
-            writer.WriteLine($"{nestedTypeDeclarations[0]} : {(generationSpec.Key is PrimaryKeySpec ? "IPrimaryKey" : "ICompositePrimaryKey")}<{generationSpec.TargetType.TypeName}>");
-            writer.WriteLine("{");
-            writer.Indentation++;
+            writer.StartBlock($"{nestedTypeDeclarations[0]} : {(generationSpec.Key is PrimaryKeySpec ? "IPrimaryKey" : "ICompositePrimaryKey")}<{generationSpec.TargetType.TypeName}>");
 
             return writer;
         }
@@ -575,10 +589,7 @@ public sealed partial class SourceGenerator
         private static SourceText CompleteSourceFileAndReturnSourceText(SourceWriter writer)
         {
             while (writer.Indentation > 0)
-            {
-                writer.Indentation--;
-                writer.WriteLine("}");
-            }
+                writer.EndBlock();
 
             return writer.ToSourceText();
         }

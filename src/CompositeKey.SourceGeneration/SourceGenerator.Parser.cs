@@ -80,7 +80,8 @@ public sealed partial class SourceGenerator
             var properties = ParseProperties(targetTypeSymbol);
             var propertyInitializers = ParsePropertyInitializers(constructorParameters, properties.Select(p => p.Spec).ToList(), ref constructionStrategy, constructorSetsRequiredMembers);
 
-            var keyParts = ParseTemplateStringIntoKeyParts(compositeKeyAttributeValues!, properties);
+            var propertiesUsedInKey = new List<(PropertySpec Spec, ITypeSymbol TypeSymbol)>();
+            var keyParts = ParseTemplateStringIntoKeyParts(compositeKeyAttributeValues!, properties, propertiesUsedInKey);
             if (keyParts is null)
                 return null; // Should have already reported diagnostics by this point so just return null...
 
@@ -128,9 +129,9 @@ public sealed partial class SourceGenerator
                     new TypeRef(targetTypeSymbol),
                     targetTypeSymbol.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString() : null,
                     targetTypeDeclarations.ToImmutableEquatableArray(),
-                    properties.Select(p => p.Spec).ToImmutableEquatableArray(),
+                    propertiesUsedInKey.Select(p => p.Spec).ToImmutableEquatableArray(),
                     constructorParameters.ToImmutableEquatableArray(),
-                    propertyInitializers.ToImmutableEquatableArray(),
+                    (propertyInitializers?.Where(pi => propertiesUsedInKey.Any(p => p.Spec.Name == pi.Name))).ToImmutableEquatableArray(),
                     constructionStrategy),
                 key);
         }
@@ -147,7 +148,8 @@ public sealed partial class SourceGenerator
 
         private List<KeyPart>? ParseTemplateStringIntoKeyParts(
             CompositeKeyAttributeValues compositeKeyAttributeValues,
-            List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> properties)
+            List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> properties,
+            List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> propertiesUsedInKey)
         {
             (string templateString, char? primaryKeySeparator, _) = compositeKeyAttributeValues;
 
@@ -197,6 +199,7 @@ public sealed partial class SourceGenerator
                     return null;
                 }
 
+                propertiesUsedInKey.Add(property);
                 var (propertySpec, typeSymbol) = property;
 
                 if (SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.GuidType))
@@ -321,6 +324,10 @@ public sealed partial class SourceGenerator
                 if (propertySymbol.IsStatic || propertySymbol.Parameters.Length > 0)
                     continue;
 
+                EnumSpec? enumSpec = null;
+                if (propertySymbol.Type is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType)
+                    enumSpec = ExtractEnumDefinition(enumType);
+
                 var propertySpec = new PropertySpec(
                     new TypeRef(propertySymbol.Type),
                     propertySymbol.Name,
@@ -328,12 +335,46 @@ public sealed partial class SourceGenerator
                     propertySymbol.IsRequired,
                     propertySymbol.GetMethod is not null,
                     propertySymbol.SetMethod is not null,
-                    propertySymbol.SetMethod is { IsInitOnly: true });
+                    propertySymbol.SetMethod is { IsInitOnly: true },
+                    enumSpec);
 
                 properties.Add((propertySpec, propertySymbol.Type));
             }
 
             return properties;
+
+            EnumSpec ExtractEnumDefinition(INamedTypeSymbol enumSymbol)
+            {
+                string name = enumSymbol.Name;
+                string fullyQualifiedName = enumSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                string underlyingType = enumSymbol.EnumUnderlyingType?.ToString() ?? "int";
+
+                List<EnumSpec.Member> members = [];
+                foreach (var enumMember in enumSymbol.GetMembers())
+                {
+                    if (enumMember is not IFieldSymbol { ConstantValue: not null } fieldSymbol)
+                        continue;
+
+                    members.Add(new EnumSpec.Member(fieldSymbol.Name, fieldSymbol.ConstantValue));
+                }
+
+                bool isSequentialFromZero = true;
+                for (int i = 0; i < members.Count; i++)
+                {
+                    if (Convert.ToUInt64(members[i].Value) == (uint)i)
+                        continue;
+
+                    isSequentialFromZero = false;
+                    break;
+                }
+
+                return new EnumSpec(
+                    name,
+                    fullyQualifiedName,
+                    underlyingType,
+                    members.ToImmutableEquatableArray(),
+                    isSequentialFromZero);
+            }
         }
 
         private ConstructorParameterSpec[] ParseConstructorParameters(

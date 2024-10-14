@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace CompositeKey.SourceGeneration.Core;
 
-internal sealed class SourceWriter
+public sealed class SourceWriter
 {
     private readonly StringBuilder _stringBuilder = new();
 
@@ -20,6 +20,27 @@ internal sealed class SourceWriter
 
             _indentation = value;
         }
+    }
+
+    public IDisposable Block(string? statement = null, bool endWithSemicolon = false)
+    {
+        StartBlock(statement);
+        return new ActionOnDisposal(() => EndBlock(endWithSemicolon));
+    }
+
+    public void StartBlock(string? statement = null)
+    {
+        if (statement is not null)
+            WriteLine(statement);
+
+        WriteLine("{");
+        Indentation++;
+    }
+
+    public void EndBlock(bool withSemicolon = false)
+    {
+        Indentation--;
+        WriteLine($"}}{(withSemicolon ? ";" : string.Empty)}");
     }
 
     public void WriteLine() => _stringBuilder.AppendLine();
@@ -91,4 +112,9 @@ internal sealed class SourceWriter
     }
 
     private void AddIndentation() => _stringBuilder.Append(' ', _indentation * 4);
+
+    private sealed class ActionOnDisposal(Action action) : IDisposable
+    {
+        public void Dispose() => action.Invoke();
+    }
 }
