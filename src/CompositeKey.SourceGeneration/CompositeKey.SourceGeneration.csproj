@@ -4,7 +4,7 @@
         <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
 
         <AnalyzerLanguage>cs</AnalyzerLanguage>
-        <AnalyzerRoslynVersion>4.10</AnalyzerRoslynVersion>
+        <AnalyzerRoslynVersion>4.8</AnalyzerRoslynVersion>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
         <DefineConstants>$(DefineConstants);BUILDING_SOURCE_GENERATOR</DefineConstants>
