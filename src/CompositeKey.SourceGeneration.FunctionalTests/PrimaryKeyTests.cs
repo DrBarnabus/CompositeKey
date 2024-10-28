@@ -263,7 +263,7 @@ public static class PrimaryKeyTests
         string result = primaryKey.ToString();
 
         result.Should().NotBeNull();
-        result.Should().Be($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.AnotherGuid}");
+        result.Should().Be($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.StringValue}");
     }
 
     [Theory, AutoData]
@@ -273,7 +273,7 @@ public static class PrimaryKeyTests
         string result = primaryKey.ToPartitionKeyString();
 
         result.Should().NotBeNull();
-        result.Should().Be($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.AnotherGuid}");
+        result.Should().Be($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.StringValue}");
     }
 
     #endregion

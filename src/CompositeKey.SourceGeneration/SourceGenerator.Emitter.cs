@@ -459,7 +459,8 @@ public sealed partial class SourceGenerator
                     DelimiterKeyPart
                     or ConstantKeyPart
                     or PropertyKeyPart { FormatType: FormatType.Guid, ExactLengthRequirement: true }
-                    or PropertyKeyPart { FormatType: FormatType.Enum, Format: "g" }))
+                    or PropertyKeyPart { FormatType: FormatType.Enum, Format: "g" }
+                    or PropertyKeyPart { FormatType: FormatType.String }))
             {
                 string lengthRequired = keyParts
                     .Where(kp => kp.ExactLengthRequirement)
@@ -480,6 +481,7 @@ public sealed partial class SourceGenerator
                     lengthRequired += keyPart switch
                     {
                         PropertyKeyPart { FormatType: FormatType.Enum, Property.EnumSpec: not null } p => $"{p.Property.EnumSpec.Name}Helper.GetFormattedLength({p.Property.Name})",
+                        PropertyKeyPart { FormatType: FormatType.String } p => $"{p.Property.Name}.Length",
                         _ => throw new InvalidOperationException()
                     };
                 }
@@ -487,7 +489,6 @@ public sealed partial class SourceGenerator
                 writer.StartBlock($"return string.Create({lengthRequired}, this, static (destination, state) =>");
 
                 writer.WriteLine("int position = 0;");
-                writer.WriteLine("int charsWritten = 0;");
                 writer.WriteLine();
 
                 for (int i = 0; i < keyParts.Count; i++)
@@ -505,14 +506,18 @@ public sealed partial class SourceGenerator
                             break;
                         case PropertyKeyPart { FormatType: FormatType.Guid } p:
                             string formatProvider = invariantFormatting ? InvariantCulture : "null";
-                            writer.WriteLine($"if (!((ISpanFormattable)state.{p.Property.Name}).TryFormat(destination[position..], out charsWritten, \"{p.Format ?? "d"}\", {formatProvider}))");
+                            writer.WriteLine($"if (!((ISpanFormattable)state.{p.Property.Name}).TryFormat(destination[position..], out int {GetCharsWritten(p.Property)}, \"{p.Format ?? "d"}\", {formatProvider}))");
                             writer.WriteLine("\tthrow new FormatException();\n");
-                            writer.WriteLine("position += charsWritten;");
+                            writer.WriteLine($"position += {GetCharsWritten(p.Property)};");
                             break;
                         case PropertyKeyPart { FormatType: FormatType.Enum, Property.EnumSpec: not null } p:
-                            writer.WriteLine($"if (!{p.Property.EnumSpec.Name}Helper.TryFormat(state.{p.Property.Name}, destination[position..], out charsWritten))");
+                            writer.WriteLine($"if (!{p.Property.EnumSpec.Name}Helper.TryFormat(state.{p.Property.Name}, destination[position..], out int {GetCharsWritten(p.Property)}))");
                             writer.WriteLine("\tthrow new FormatException();\n");
-                            writer.WriteLine("position += charsWritten;");
+                            writer.WriteLine($"position += {GetCharsWritten(p.Property)};");
+                            break;
+                        case PropertyKeyPart { FormatType: FormatType.String } p:
+                            writer.WriteLine($"state.{p.Property.Name}.CopyTo(destination[position..]);");
+                            writer.WriteLine($"position += state.{p.Property.Name}.Length;");
                             break;
                         default:
                             throw new InvalidOperationException();
@@ -546,6 +551,8 @@ public sealed partial class SourceGenerator
 
             writer.EndBlock();
             writer.WriteLine();
+
+            static string GetCharsWritten(PropertySpec p) => $"{p.CamelCaseName}CharsWritten";
         }
 
         private void AddSource(string hintName, SourceText sourceText) => _context.AddSource(hintName, sourceText);

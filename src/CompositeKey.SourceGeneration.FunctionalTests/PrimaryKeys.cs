@@ -18,8 +18,8 @@ public sealed partial record MixedTypePrimaryKey(Guid GuidValue, int IntValue, s
 [CompositeKey("ConstantValue#{DynamicValue}@ConstantStringAtEndOfKey")]
 public sealed partial record PrimaryKeyWithConstants(Guid DynamicValue);
 
-[CompositeKey("{GuidValue}#Constant#{EnumValue}@{AnotherGuid}")]
-public sealed partial record PrimaryKeyWithFastPathFormatting(Guid GuidValue, PrimaryKeyWithFastPathFormatting.EnumType EnumValue, Guid AnotherGuid)
+[CompositeKey("{GuidValue}#Constant#{EnumValue}@{StringValue}")]
+public sealed partial record PrimaryKeyWithFastPathFormatting(Guid GuidValue, PrimaryKeyWithFastPathFormatting.EnumType EnumValue, string StringValue)
 {
     public enum EnumType { One, Two, Three, Four, Five, Six, Seven, Eight, Nine };
 }
