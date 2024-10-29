@@ -3,6 +3,19 @@
 All notable changes to this project will be automatically documented in this file.
 
 
+## [1.3.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.2.0...v1.3.0) (2024-10-29)
+
+
+### Features
+
+* Fast path `Format` generation for string properties ([#15](https://github.com/DrBarnabus/CompositeKey/issues/15)) ([b3a59e4](https://github.com/DrBarnabus/CompositeKey/commit/b3a59e44a1c76f20fd71aeec2dae5196e802e59d))
+* Fast path `Format`/`Parse` generation for Enums ([#10](https://github.com/DrBarnabus/CompositeKey/issues/10)) ([858ba21](https://github.com/DrBarnabus/CompositeKey/commit/858ba212a359434c09a1abc9229209fac4ad7ffb))
+
+
+### Bug Fixes
+
+* Source Generator now correctly targets all .NET 8 SDK Versions ([#13](https://github.com/DrBarnabus/CompositeKey/issues/13)) ([93c912f](https://github.com/DrBarnabus/CompositeKey/commit/93c912fffa825e1818c6c98e8633991cca35f185))
+
 ## [1.2.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.1.0...v1.2.0) (2024-10-10)
 
 
