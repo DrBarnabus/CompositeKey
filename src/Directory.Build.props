@@ -8,6 +8,8 @@
 
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <WarningsNotAsErrors>CS0618</WarningsNotAsErrors>
+
+        <AnalyzerRoslynVersion>4.8</AnalyzerRoslynVersion>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -24,12 +26,5 @@
         <RepositoryUrl>https://github.com/DrBarnabus/CompositeKey.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
     </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
 
 </Project>
