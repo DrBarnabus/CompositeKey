@@ -4,7 +4,6 @@
         <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
 
         <AnalyzerLanguage>cs</AnalyzerLanguage>
-        <AnalyzerRoslynVersion>4.8</AnalyzerRoslynVersion>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
         <DefineConstants>$(DefineConstants);BUILDING_SOURCE_GENERATOR</DefineConstants>
@@ -15,15 +14,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(AnalyzerRoslynVersion)" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="3.11.0-beta1.24318.1">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.ResxSourceGenerator">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="PolySharp" Version="1.14.1">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        <PackageReference Include="PolySharp">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
 
