@@ -32,7 +32,14 @@ jobs:
       - name: Install .NET SDK v8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.402
+          dotnet-version: 8.0.404
+        env:
+          DOTNET_INSTALL_DIR: /usr/share/dotnet
+
+      - name: Install .NET SDK v9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.100
         env:
           DOTNET_INSTALL_DIR: /usr/share/dotnet
 
