@@ -1,5 +1,4 @@
 ﻿using AutoFixture.Xunit2;
-using FluentAssertions;
 
 namespace CompositeKey.SourceGeneration.FunctionalTests;
 
@@ -10,8 +9,8 @@ public static class CompositePrimaryKeyTests
     {
         var result = CompositePrimaryKey.Parse(compositeKey.ToString());
 
-        result.Should().NotBeNull();
-        result.Should().BeEquivalentTo(compositeKey);
+        result.ShouldNotBeNull();
+        result.ShouldBeEquivalentTo(compositeKey);
     }
 
     [Theory, AutoData]
@@ -21,8 +20,8 @@ public static class CompositePrimaryKeyTests
 
         string result = compositeKey.ToString();
 
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Be($"{guidValue}#{decimalValue}|Constant~{enumValue}@{stringValue}");
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"{guidValue}#{decimalValue}|Constant~{enumValue}@{stringValue}");
     }
 
     [Theory, AutoData]
@@ -32,8 +31,8 @@ public static class CompositePrimaryKeyTests
 
         string result = compositeKey.ToPartitionKeyString();
 
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Be($"{guidValue}#{decimalValue}");
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"{guidValue}#{decimalValue}");
     }
 
     [Theory, AutoData]
@@ -43,8 +42,8 @@ public static class CompositePrimaryKeyTests
 
         string result = compositeKey.ToSortKeyString();
 
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Be($"Constant~{enumValue}@{stringValue}");
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"Constant~{enumValue}@{stringValue}");
     }
 
     [Theory, AutoData]
@@ -54,18 +53,18 @@ public static class CompositePrimaryKeyTests
 
         var result = CompositePrimaryKey.Parse($"{guidValue}#{decimalValue}|Constant~{enumValue}@{stringValue}");
 
-        result.Should().NotBeNull();
-        result.GuidValue.Should().Be(guidValue);
-        result.DecimalValue.Should().Be(decimalValue);
-        result.EnumValue.Should().Be(enumValue);
-        result.StringValue.Should().Be(stringValue);
+        result.ShouldNotBeNull();
+        result.GuidValue.ShouldBe(guidValue);
+        result.DecimalValue.ShouldBe(decimalValue);
+        result.EnumValue.ShouldBe(enumValue);
+        result.StringValue.ShouldBe(stringValue);
     }
 
     [Theory, MemberData(nameof(CompositePrimaryKey_InvalidPrimaryKeys))]
     public static void CompositePrimaryKey_Parse_WithInvalidPrimaryKey_ShouldThrowFormatException(string primaryKey)
     {
         var act = () => CompositePrimaryKey.Parse(primaryKey);
-        act.Should().Throw<FormatException>();
+        act.ShouldThrow<FormatException>();
     }
 
     [Theory, AutoData]
@@ -75,18 +74,18 @@ public static class CompositePrimaryKeyTests
 
         var result = CompositePrimaryKey.Parse($"{guidValue}#{decimalValue}", $"Constant~{enumValue}@{stringValue}");
 
-        result.Should().NotBeNull();
-        result.GuidValue.Should().Be(guidValue);
-        result.DecimalValue.Should().Be(decimalValue);
-        result.EnumValue.Should().Be(enumValue);
-        result.StringValue.Should().Be(stringValue);
+        result.ShouldNotBeNull();
+        result.GuidValue.ShouldBe(guidValue);
+        result.DecimalValue.ShouldBe(decimalValue);
+        result.EnumValue.ShouldBe(enumValue);
+        result.StringValue.ShouldBe(stringValue);
     }
 
     [Theory, MemberData(nameof(CompositePrimaryKey_InvalidPartitionKeyAndSortKeys))]
     public static void CompositePrimaryKey_Parse_WithInvalidPartitionKeyAndSortKey_ShouldThrowFormatException(string partitionKey, string sortKey)
     {
         var act = () => CompositePrimaryKey.Parse(partitionKey, sortKey);
-        act.Should().Throw<FormatException>();
+        act.ShouldThrow<FormatException>();
     }
 
     [Theory, AutoData]
@@ -94,21 +93,21 @@ public static class CompositePrimaryKeyTests
     {
         (var guidValue, decimal decimalValue, var enumValue, string stringValue) = compositeKey;
 
-        CompositePrimaryKey.TryParse($"{guidValue}#{decimalValue}|Constant~{enumValue}@{stringValue}", out var result).Should().BeTrue();
+        CompositePrimaryKey.TryParse($"{guidValue}#{decimalValue}|Constant~{enumValue}@{stringValue}", out var result).ShouldBeTrue();
 
-        result.Should().NotBeNull();
-        result!.GuidValue.Should().Be(guidValue);
-        result.DecimalValue.Should().Be(decimalValue);
-        result.EnumValue.Should().Be(enumValue);
-        result.StringValue.Should().Be(stringValue);
+        result.ShouldNotBeNull();
+        result.GuidValue.ShouldBe(guidValue);
+        result.DecimalValue.ShouldBe(decimalValue);
+        result.EnumValue.ShouldBe(enumValue);
+        result.StringValue.ShouldBe(stringValue);
     }
 
     [Theory, MemberData(nameof(CompositePrimaryKey_InvalidPrimaryKeys))]
     public static void CompositePrimaryKey_TryParse_WithInvalidPrimaryKey_ShouldThrowFormatException(string primaryKey)
     {
-        CompositePrimaryKey.TryParse(primaryKey, out var result).Should().BeFalse();
+        CompositePrimaryKey.TryParse(primaryKey, out var result).ShouldBeFalse();
 
-        result.Should().BeNull();
+        result.ShouldBeNull();
     }
 
     [Theory, AutoData]
@@ -116,21 +115,21 @@ public static class CompositePrimaryKeyTests
     {
         (var guidValue, decimal decimalValue, var enumValue, string stringValue) = compositeKey;
 
-        CompositePrimaryKey.TryParse($"{guidValue}#{decimalValue}", $"Constant~{enumValue}@{stringValue}", out var result).Should().BeTrue();
+        CompositePrimaryKey.TryParse($"{guidValue}#{decimalValue}", $"Constant~{enumValue}@{stringValue}", out var result).ShouldBeTrue();
 
-        result.Should().NotBeNull();
-        result!.GuidValue.Should().Be(guidValue);
-        result.DecimalValue.Should().Be(decimalValue);
-        result.EnumValue.Should().Be(enumValue);
-        result.StringValue.Should().Be(stringValue);
+        result.ShouldNotBeNull();
+        result.GuidValue.ShouldBe(guidValue);
+        result.DecimalValue.ShouldBe(decimalValue);
+        result.EnumValue.ShouldBe(enumValue);
+        result.StringValue.ShouldBe(stringValue);
     }
 
     [Theory, MemberData(nameof(CompositePrimaryKey_InvalidPartitionKeyAndSortKeys))]
     public static void CompositePrimaryKey_TryParse_WithInvalidPartitionKeyAndSortKey_ShouldThrowFormatException(string partitionKey, string sortKey)
     {
-        CompositePrimaryKey.TryParse(partitionKey, sortKey, out var result).Should().BeFalse();
+        CompositePrimaryKey.TryParse(partitionKey, sortKey, out var result).ShouldBeFalse();
 
-        result.Should().BeNull();
+        result.ShouldBeNull();
     }
 
     public static object[][] CompositePrimaryKey_InvalidPrimaryKeys() =>

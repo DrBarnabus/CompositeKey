@@ -1,5 +1,4 @@
 ﻿using AutoFixture.Xunit2;
-using FluentAssertions;
 
 namespace CompositeKey.SourceGeneration.FunctionalTests;
 
@@ -12,8 +11,8 @@ public static class PrimaryKeyTests
     {
         var result = GuidOnlyPrimaryKey.Parse(primaryKey.ToString());
 
-        result.Should().NotBeNull();
-        result.Should().BeEquivalentTo(primaryKey);
+        result.ShouldNotBeNull();
+        result.ShouldBeEquivalentTo(primaryKey);
     }
 
     [Theory, AutoData]
@@ -21,8 +20,8 @@ public static class PrimaryKeyTests
     {
         string result = primaryKey.ToString();
 
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Be($"{primaryKey.First}#{primaryKey.Second}");
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"{primaryKey.First}#{primaryKey.Second}");
     }
 
     [Theory, AutoData]
@@ -30,8 +29,8 @@ public static class PrimaryKeyTests
     {
         string result = primaryKey.ToPartitionKeyString();
 
-        result.Should().NotBeNullOrEmpty();
-        result.Should().Be($"{primaryKey.First}#{primaryKey.Second}");
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"{primaryKey.First}#{primaryKey.Second}");
     }
 
     [Theory, AutoData]
@@ -39,34 +38,34 @@ public static class PrimaryKeyTests
     {
         var result = GuidOnlyPrimaryKey.Parse($"{first}#{second}");
 
-        result.Should().NotBeNull();
-        result.First.Should().Be(first);
-        result.Second.Should().Be(second);
+        result.ShouldNotBeNull();
+        result.First.ShouldBe(first);
+        result.Second.ShouldBe(second);
     }
 
     [Theory, MemberData(nameof(GuidOnlyPrimaryKey_InvalidInputs))]
     public static void GuidOnlyPrimaryKey_Parse_WithInvalidKey_ShouldThrowFormatException(string input)
     {
         var act = () => GuidOnlyPrimaryKey.Parse(input);
-        act.Should().Throw<FormatException>();
+        act.ShouldThrow<FormatException>();
     }
 
     [Theory, AutoData]
     public static void GuidOnlyPrimaryKey_TryParse_WithValidKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord(Guid first, Guid second)
     {
-        GuidOnlyPrimaryKey.TryParse($"{first}#{second}", out var result).Should().BeTrue();
+        GuidOnlyPrimaryKey.TryParse($"{first}#{second}", out var result).ShouldBeTrue();
 
-        result.Should().NotBeNull();
-        result!.First.Should().Be(first);
-        result.Second.Should().Be(second);
+        result.ShouldNotBeNull();
+        result.First.ShouldBe(first);
+        result.Second.ShouldBe(second);
     }
 
     [Theory, MemberData(nameof(GuidOnlyPrimaryKey_InvalidInputs))]
     public static void GuidOnlyPrimaryKey_TryParse_WithInvalidKey_ShouldReturnFalse(string input)
     {
-        GuidOnlyPrimaryKey.TryParse(input, out var result).Should().BeFalse();
+        GuidOnlyPrimaryKey.TryParse(input, out var result).ShouldBeFalse();
 
-        result.Should().BeNull();
+        result.ShouldBeNull();
     }
 
     public static object[][] GuidOnlyPrimaryKey_InvalidInputs() =>
@@ -88,8 +87,8 @@ public static class PrimaryKeyTests
     {
         var result = MixedTypePrimaryKey.Parse(primaryKey.ToString());
 
-        result.Should().NotBeNull();
-        result.Should().BeEquivalentTo(primaryKey);
+        result.ShouldNotBeNull();
+        result.ShouldBeEquivalentTo(primaryKey);
     }
 
     [Theory, AutoData]
@@ -97,8 +96,8 @@ public static class PrimaryKeyTests
     {
         string result = primaryKey.ToString();
 
-        result.Should().NotBeNull();
-        result.Should().Be($"{primaryKey.GuidValue}#{primaryKey.IntValue}~{primaryKey.StringValue}#{primaryKey.EnumValue}");
+        result.ShouldNotBeNull();
+        result.ShouldBe($"{primaryKey.GuidValue}#{primaryKey.IntValue}~{primaryKey.StringValue}#{primaryKey.EnumValue}");
     }
 
     [Theory, AutoData]
@@ -106,8 +105,8 @@ public static class PrimaryKeyTests
     {
         string result = primaryKey.ToPartitionKeyString();
 
-        result.Should().NotBeNull();
-        result.Should().Be($"{primaryKey.GuidValue}#{primaryKey.IntValue}~{primaryKey.StringValue}#{primaryKey.EnumValue}");
+        result.ShouldNotBeNull();
+        result.ShouldBe($"{primaryKey.GuidValue}#{primaryKey.IntValue}~{primaryKey.StringValue}#{primaryKey.EnumValue}");
     }
 
     [Theory, AutoData]
@@ -116,39 +115,39 @@ public static class PrimaryKeyTests
     {
         var result = MixedTypePrimaryKey.Parse($"{guidValue}#{intValue}~{stringValue}#{enumValue}");
 
-        result.Should().NotBeNull();
-        result.GuidValue.Should().Be(guidValue);
-        result.IntValue.Should().Be(intValue);
-        result.StringValue.Should().Be(stringValue);
-        result.EnumValue.Should().Be(enumValue);
+        result.ShouldNotBeNull();
+        result.GuidValue.ShouldBe(guidValue);
+        result.IntValue.ShouldBe(intValue);
+        result.StringValue.ShouldBe(stringValue);
+        result.EnumValue.ShouldBe(enumValue);
     }
 
     [Theory, MemberData(nameof(MixedTypePrimaryKey_InvalidInputs))]
     public static void MixedTypePrimaryKey_Parse_WithInvalidKey_ShouldThrowFormatException(string input)
     {
         var act = () => MixedTypePrimaryKey.Parse(input);
-        act.Should().Throw<FormatException>();
+        act.ShouldThrow<FormatException>();
     }
 
     [Theory, AutoData]
     public static void MixedTypePrimaryKey_TryParse_WithValidKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord(
         Guid guidValue, int intValue, string stringValue, MixedTypePrimaryKey.EnumType enumValue)
     {
-        MixedTypePrimaryKey.TryParse($"{guidValue}#{intValue}~{stringValue}#{enumValue}", out var result).Should().BeTrue();
+        MixedTypePrimaryKey.TryParse($"{guidValue}#{intValue}~{stringValue}#{enumValue}", out var result).ShouldBeTrue();
 
-        result.Should().NotBeNull();
-        result!.GuidValue.Should().Be(guidValue);
-        result.IntValue.Should().Be(intValue);
-        result.StringValue.Should().Be(stringValue);
-        result.EnumValue.Should().Be(enumValue);
+        result.ShouldNotBeNull();
+        result.GuidValue.ShouldBe(guidValue);
+        result.IntValue.ShouldBe(intValue);
+        result.StringValue.ShouldBe(stringValue);
+        result.EnumValue.ShouldBe(enumValue);
     }
 
     [Theory, MemberData(nameof(MixedTypePrimaryKey_InvalidInputs))]
     public static void MixedTypePrimaryKey_TryParse_WithInvalidKey_ShouldReturnFalse(string input)
     {
-        MixedTypePrimaryKey.TryParse(input, out var result).Should().BeFalse();
+        MixedTypePrimaryKey.TryParse(input, out var result).ShouldBeFalse();
 
-        result.Should().BeNull();
+        result.ShouldBeNull();
     }
 
     public static object[][] MixedTypePrimaryKey_InvalidInputs() =>
@@ -174,8 +173,8 @@ public static class PrimaryKeyTests
     {
         var result = PrimaryKeyWithConstants.Parse(primaryKey.ToString());
 
-        result.Should().NotBeNull();
-        result.Should().BeEquivalentTo(primaryKey);
+        result.ShouldNotBeNull();
+        result.ShouldBeEquivalentTo(primaryKey);
     }
 
     [Theory, AutoData]
@@ -183,8 +182,8 @@ public static class PrimaryKeyTests
     {
         string result = primaryKey.ToString();
 
-        result.Should().NotBeNull();
-        result.Should().Be($"ConstantValue#{primaryKey.DynamicValue}@ConstantStringAtEndOfKey");
+        result.ShouldNotBeNull();
+        result.ShouldBe($"ConstantValue#{primaryKey.DynamicValue}@ConstantStringAtEndOfKey");
     }
 
     [Theory, AutoData]
@@ -192,8 +191,8 @@ public static class PrimaryKeyTests
     {
         string result = primaryKey.ToPartitionKeyString();
 
-        result.Should().NotBeNull();
-        result.Should().Be($"ConstantValue#{primaryKey.DynamicValue}@ConstantStringAtEndOfKey");
+        result.ShouldNotBeNull();
+        result.ShouldBe($"ConstantValue#{primaryKey.DynamicValue}@ConstantStringAtEndOfKey");
     }
 
     [Theory, AutoData]
@@ -202,33 +201,33 @@ public static class PrimaryKeyTests
     {
         var result = PrimaryKeyWithConstants.Parse($"ConstantValue#{dynamicValue}@ConstantStringAtEndOfKey");
 
-        result.Should().NotBeNull();
-        result.DynamicValue.Should().Be(dynamicValue);
+        result.ShouldNotBeNull();
+        result.DynamicValue.ShouldBe(dynamicValue);
     }
 
     [Theory, MemberData(nameof(PrimaryKeyWithConstants_InvalidInputs))]
     public static void PrimaryKeyWithConstants_Parse_WithInvalidKey_ShouldThrowFormatException(string input)
     {
         var act = () => MixedTypePrimaryKey.Parse(input);
-        act.Should().Throw<FormatException>();
+        act.ShouldThrow<FormatException>();
     }
 
     [Theory, AutoData]
     public static void PrimaryKeyWithConstants_TryParse_WithValidKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord(
         Guid dynamicValue)
     {
-        PrimaryKeyWithConstants.TryParse($"ConstantValue#{dynamicValue}@ConstantStringAtEndOfKey", out var result).Should().BeTrue();
+        PrimaryKeyWithConstants.TryParse($"ConstantValue#{dynamicValue}@ConstantStringAtEndOfKey", out var result).ShouldBeTrue();
 
-        result.Should().NotBeNull();
-        result!.DynamicValue.Should().Be(dynamicValue);
+        result.ShouldNotBeNull();
+        result.DynamicValue.ShouldBe(dynamicValue);
     }
 
     [Theory, MemberData(nameof(PrimaryKeyWithConstants_InvalidInputs))]
     public static void PrimaryKeyWithConstants_TryParse_WithInvalidKey_ShouldReturnFalse(string input)
     {
-        MixedTypePrimaryKey.TryParse(input, out var result).Should().BeFalse();
+        MixedTypePrimaryKey.TryParse(input, out var result).ShouldBeFalse();
 
-        result.Should().BeNull();
+        result.ShouldBeNull();
     }
 
     public static object[][] PrimaryKeyWithConstants_InvalidInputs() =>
@@ -252,8 +251,8 @@ public static class PrimaryKeyTests
     {
         var result = PrimaryKeyWithFastPathFormatting.Parse(primaryKey.ToString());
 
-        result.Should().NotBeNull();
-        result.Should().BeEquivalentTo(primaryKey);
+        result.ShouldNotBeNull();
+        result.ShouldBeEquivalentTo(primaryKey);
     }
 
     [Theory, AutoData]
@@ -262,8 +261,8 @@ public static class PrimaryKeyTests
     {
         string result = primaryKey.ToString();
 
-        result.Should().NotBeNull();
-        result.Should().Be($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.StringValue}");
+        result.ShouldNotBeNull();
+        result.ShouldBe($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.StringValue}");
     }
 
     [Theory, AutoData]
@@ -272,8 +271,8 @@ public static class PrimaryKeyTests
     {
         string result = primaryKey.ToPartitionKeyString();
 
-        result.Should().NotBeNull();
-        result.Should().Be($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.StringValue}");
+        result.ShouldNotBeNull();
+        result.ShouldBe($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.StringValue}");
     }
 
     #endregion
