@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using CompositeKey.SourceGeneration.Model;
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -75,8 +74,8 @@ public static class CompilationHelper
 
         if (!disableDiagnosticValidation)
         {
-            outputCompilation.GetDiagnostics().Where(d => d.Severity > DiagnosticSeverity.Info).Should().BeEmpty();
-            diagnostics.Where(d => d.Severity > DiagnosticSeverity.Info).Should().BeEmpty();
+            outputCompilation.GetDiagnostics().Where(d => d.Severity > DiagnosticSeverity.Info).ShouldBeEmpty();
+            diagnostics.Where(d => d.Severity > DiagnosticSeverity.Info).ShouldBeEmpty();
         }
 
         return new SourceGeneratorResult()

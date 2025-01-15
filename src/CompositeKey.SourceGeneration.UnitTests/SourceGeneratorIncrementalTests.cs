@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Reflection;
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 
 namespace CompositeKey.SourceGeneration.UnitTests;
@@ -13,18 +12,18 @@ public static class SourceGeneratorIncrementalTests
         var firstResult = CompilationHelper.RunSourceGenerator(factory(), disableDiagnosticValidation: true);
         var secondResult = CompilationHelper.RunSourceGenerator(factory(), disableDiagnosticValidation: true);
 
-        firstResult.GenerationSpecs.Length.Should().Be(secondResult.GenerationSpecs.Length);
+        firstResult.GenerationSpecs.Length.ShouldBe(secondResult.GenerationSpecs.Length);
 
         for (int i = 0; i < firstResult.GenerationSpecs.Length; i++)
         {
             var firstGenerationSpec = firstResult.GenerationSpecs[i];
             var secondGenerationSpec = secondResult.GenerationSpecs[i];
 
-            firstGenerationSpec.Should().NotBeSameAs(secondGenerationSpec);
+            firstGenerationSpec.ShouldNotBeSameAs(secondGenerationSpec);
             AssertStructurallyEqual(firstGenerationSpec, secondGenerationSpec);
 
-            firstGenerationSpec.Should().Be(secondGenerationSpec);
-            firstGenerationSpec.GetHashCode().Should().Be(secondGenerationSpec.GetHashCode());
+            firstGenerationSpec.ShouldBe(secondGenerationSpec);
+            firstGenerationSpec.GetHashCode().ShouldBe(secondGenerationSpec.GetHashCode());
         }
     }
 
@@ -58,17 +57,17 @@ public static class SourceGeneratorIncrementalTests
         var firstResult = CompilationHelper.RunSourceGenerator(CompilationHelper.CreateCompilation(FirstSource));
         var secondResult = CompilationHelper.RunSourceGenerator(CompilationHelper.CreateCompilation(SecondSource));
 
-        firstResult.GenerationSpecs.Should().HaveCount(1);
+        firstResult.GenerationSpecs.ShouldHaveSingleItem();
         var firstGenerationSpec = firstResult.GenerationSpecs[0];
 
-        secondResult.GenerationSpecs.Should().HaveCount(1);
+        secondResult.GenerationSpecs.ShouldHaveSingleItem();
         var secondGenerationSpec = secondResult.GenerationSpecs[0];
 
-        firstGenerationSpec.Should().NotBeSameAs(secondGenerationSpec);
+        firstGenerationSpec.ShouldNotBeSameAs(secondGenerationSpec);
         AssertStructurallyEqual(firstGenerationSpec, secondGenerationSpec);
 
-        firstGenerationSpec.Should().Be(secondGenerationSpec);
-        firstGenerationSpec.GetHashCode().Should().Be(secondGenerationSpec.GetHashCode());
+        firstGenerationSpec.ShouldBe(secondGenerationSpec);
+        firstGenerationSpec.GetHashCode().ShouldBe(secondGenerationSpec.GetHashCode());
     }
 
     [Fact]
@@ -97,15 +96,15 @@ public static class SourceGeneratorIncrementalTests
         var firstResult = CompilationHelper.RunSourceGenerator(CompilationHelper.CreateCompilation(FirstSource));
         var secondResult = CompilationHelper.RunSourceGenerator(CompilationHelper.CreateCompilation(SecondSource));
 
-        firstResult.GenerationSpecs.Should().HaveCount(1);
+        firstResult.GenerationSpecs.ShouldHaveSingleItem();
         var firstGenerationSpec = firstResult.GenerationSpecs[0];
 
-        secondResult.GenerationSpecs.Should().HaveCount(1);
+        secondResult.GenerationSpecs.ShouldHaveSingleItem();
         var secondGenerationSpec = secondResult.GenerationSpecs[0];
 
-        firstGenerationSpec.Should().NotBeSameAs(secondGenerationSpec);
-        firstGenerationSpec.Should().NotBe(secondGenerationSpec);
-        firstGenerationSpec.GetHashCode().Should().NotBe(secondGenerationSpec.GetHashCode());
+        firstGenerationSpec.ShouldNotBeSameAs(secondGenerationSpec);
+        firstGenerationSpec.ShouldNotBe(secondGenerationSpec);
+        firstGenerationSpec.GetHashCode().ShouldNotBe(secondGenerationSpec.GetHashCode());
     }
 
     [Theory, MemberData(nameof(GetCompilationHelperFactories))]
@@ -122,7 +121,7 @@ public static class SourceGeneratorIncrementalTests
             if (node is null || !visited.Add(node))
                 return;
 
-            (node is Compilation or ISymbol).Should().BeFalse();
+            (node is Compilation or ISymbol).ShouldBeFalse();
 
             var type = node.GetType();
             if (type.IsPrimitive || type.IsEnum || type == typeof(string))
@@ -157,10 +156,10 @@ public static class SourceGeneratorIncrementalTests
             foreach (var step in steps)
             {
                 foreach ((var source, int outputIndex) in step.Inputs)
-                    source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.New);
+                    source.Outputs[outputIndex].Reason.ShouldBe(IncrementalStepRunReason.New);
 
                 foreach (var output in step.Outputs)
-                    output.Reason.Should().Be(IncrementalStepRunReason.New);
+                    output.Reason.ShouldBe(IncrementalStepRunReason.New);
             }
         }
 
@@ -171,20 +170,20 @@ public static class SourceGeneratorIncrementalTests
         var newSteps = GetGeneratorRunSteps(result);
         if (steps != null)
         {
-            newSteps.Should().NotBeNull();
+            newSteps.ShouldNotBeNull();
 
-            foreach (var step in newSteps!)
+            foreach (var step in newSteps)
             {
                 foreach ((var source, int outputIndex) in step.Inputs)
-                    source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.Cached);
+                    source.Outputs[outputIndex].Reason.ShouldBe(IncrementalStepRunReason.Cached);
 
                 foreach (var output in step.Outputs)
-                    output.Reason.Should().Be(IncrementalStepRunReason.Cached);
+                    output.Reason.ShouldBe(IncrementalStepRunReason.Cached);
             }
         }
         else
         {
-            newSteps.Should().BeNull();
+            newSteps.ShouldBeNull();
         }
 
         return;
@@ -228,10 +227,10 @@ public static class SourceGeneratorIncrementalTests
         foreach (var step in result.TrackedSteps[SourceGenerator.GenerationSpecTrackingName])
         {
             foreach ((var source, int outputIndex) in step.Inputs)
-                source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.New);
+                source.Outputs[outputIndex].Reason.ShouldBe(IncrementalStepRunReason.New);
 
             foreach (var output in step.Outputs)
-                output.Reason.Should().Be(IncrementalStepRunReason.New);
+                output.Reason.ShouldBe(IncrementalStepRunReason.New);
         }
 
         // Execute the generator again with an updated *but equivalent* syntax tree, confirm the output is unchanged
@@ -242,10 +241,10 @@ public static class SourceGeneratorIncrementalTests
         foreach (var step in result.TrackedSteps[SourceGenerator.GenerationSpecTrackingName])
         {
             foreach ((var source, int outputIndex) in step.Inputs)
-                source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.Modified);
+                source.Outputs[outputIndex].Reason.ShouldBe(IncrementalStepRunReason.Modified);
 
             foreach (var output in step.Outputs)
-                output.Reason.Should().Be(IncrementalStepRunReason.Unchanged);
+                output.Reason.ShouldBe(IncrementalStepRunReason.Unchanged);
         }
     }
 
@@ -281,10 +280,10 @@ public static class SourceGeneratorIncrementalTests
         foreach (var step in result.TrackedSteps[SourceGenerator.GenerationSpecTrackingName])
         {
             foreach ((var source, int outputIndex) in step.Inputs)
-                source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.New);
+                source.Outputs[outputIndex].Reason.ShouldBe(IncrementalStepRunReason.New);
 
             foreach (var output in step.Outputs)
-                output.Reason.Should().Be(IncrementalStepRunReason.New);
+                output.Reason.ShouldBe(IncrementalStepRunReason.New);
         }
 
         // Execute the generator again with an updated *but equivalent* syntax tree, confirm the output is unchanged
@@ -295,10 +294,10 @@ public static class SourceGeneratorIncrementalTests
         foreach (var step in result.TrackedSteps[SourceGenerator.GenerationSpecTrackingName])
         {
             foreach ((var source, int outputIndex) in step.Inputs)
-                source.Outputs[outputIndex].Reason.Should().Be(IncrementalStepRunReason.Modified);
+                source.Outputs[outputIndex].Reason.ShouldBe(IncrementalStepRunReason.Modified);
 
             foreach (var output in step.Outputs)
-                output.Reason.Should().Be(IncrementalStepRunReason.Modified);
+                output.Reason.ShouldBe(IncrementalStepRunReason.Modified);
         }
     }
 
