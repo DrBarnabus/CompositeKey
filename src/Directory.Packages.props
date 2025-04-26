@@ -14,18 +14,18 @@
     <!-- Analyzers -->
     <ItemGroup>
         <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
-        <PackageVersion Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="3.11.0-beta1.24605.2" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="3.12.0-beta1.25155.1" />
     </ItemGroup>
 
     <!-- Testing -->
     <ItemGroup>
         <PackageVersion Include="AutoFixture.Xunit2" Version="4.18.1" />
-        <PackageVersion Include="coverlet.collector" Version="6.0.3" />
+        <PackageVersion Include="coverlet.collector" Version="6.0.4" />
         <PackageVersion Include="Microsoft.CodeAnalysis" Version="$(AnalyzerRoslynVersion)" />
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-        <PackageVersion Include="Shouldly" Version="4.2.1" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+        <PackageVersion Include="Shouldly" Version="4.3.0" />
         <PackageVersion Include="xunit" Version="2.9.3" />
-        <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.1" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />
     </ItemGroup>
 
     <!-- Global -->
