@@ -28,9 +28,9 @@
       },
       "Microsoft.CodeAnalysis.ResxSourceGenerator": {
         "type": "Direct",
-        "requested": "[3.11.0-beta1.24605.2, )",
-        "resolved": "3.11.0-beta1.24605.2",
-        "contentHash": "8knaIsNJLuapK1LDTVISNBiU0uKLsVLU/ooCC7uPieEyrv61txxtb0pIfZy7+oKhwnpK8oFaEF10ftBRBxcCig=="
+        "requested": "[3.12.0-beta1.25155.1, )",
+        "resolved": "3.12.0-beta1.25155.1",
+        "contentHash": "TVFA5vFYws5VtEuFoHHhhsWRBXmu31FV5UpkaiyvoBn+WyTunf5u1ASngWind7YOfiYe1wTJ3FXysIzU77Q/SA=="
       },
       "NETStandard.Library": {
         "type": "Direct",
@@ -259,9 +259,9 @@
       },
       "Microsoft.CodeAnalysis.ResxSourceGenerator": {
         "type": "Direct",
-        "requested": "[3.11.0-beta1.24605.2, )",
-        "resolved": "3.11.0-beta1.24605.2",
-        "contentHash": "8knaIsNJLuapK1LDTVISNBiU0uKLsVLU/ooCC7uPieEyrv61txxtb0pIfZy7+oKhwnpK8oFaEF10ftBRBxcCig=="
+        "requested": "[3.12.0-beta1.25155.1, )",
+        "resolved": "3.12.0-beta1.25155.1",
+        "contentHash": "TVFA5vFYws5VtEuFoHHhhsWRBXmu31FV5UpkaiyvoBn+WyTunf5u1ASngWind7YOfiYe1wTJ3FXysIzU77Q/SA=="
       },
       "PolySharp": {
         "type": "Direct",
