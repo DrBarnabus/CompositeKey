@@ -69,9 +69,9 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} -p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
       - name: Unit Test
-        run: dotnet test src/CompositeKey.SourceGeneration.UnitTests -c Release --no-restore --no-build --collect:"XPlat Code Coverage" --results-directory unit-test-results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+        run: dotnet test src/CompositeKey.SourceGeneration.UnitTests -c Release --no-restore --no-build --logger:"junit;LogFileName={framework}.results.xml" --collect:"XPlat Code Coverage" --results-directory unit-test-results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
       - name: Functional Test
-        run: dotnet test src/CompositeKey.SourceGeneration.FunctionalTests -c Release --no-restore --no-build
+        run: dotnet test src/CompositeKey.SourceGeneration.FunctionalTests -c Release --no-restore --no-build --logger:"junit;LogFileName={framework}.results.xml" --results-directory functional-test-results
       - name: Pack
         run: dotnet pack src/CompositeKey -c Release --no-build -p:Version=${{ steps.gitversion.outputs.semVer }} -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} -o _output
 
@@ -80,6 +80,19 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./unit-test-results/*/coverage.opencover.xml
+
+      - name: Upload Unit Test Results to Codecov
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: unit-test-results/*.results.xml
+          flags: unit
+      - name: Upload Functional Test Results to Codecov
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: functional-test-results/*.results.xml
+          flags: functional
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

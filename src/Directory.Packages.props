@@ -21,11 +21,12 @@
     <ItemGroup>
         <PackageVersion Include="AutoFixture.Xunit2" Version="4.18.1" />
         <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+        <PackageVersion Include="JunitXml.TestLogger" Version="6.1.0" />
         <PackageVersion Include="Microsoft.CodeAnalysis" Version="$(AnalyzerRoslynVersion)" />
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
         <PackageVersion Include="Shouldly" Version="4.3.0" />
         <PackageVersion Include="xunit" Version="2.9.3" />
-        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.0" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
     </ItemGroup>
 
     <!-- Global -->
