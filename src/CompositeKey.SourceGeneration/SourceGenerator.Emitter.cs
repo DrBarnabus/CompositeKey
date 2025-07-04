@@ -243,8 +243,9 @@ public sealed partial class SourceGenerator
                     getSortKeyPartInputVariable = i => $"sortKey[{sortKeyPartRangesVariable}[{i}]]";
                 }
 
-                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, true);
-                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, true);
+                var propertyNameCounts = partitionKeyParts.Concat(sortKeyParts).OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
+                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, true, propertyNameCounts);
+                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, true, propertyNameCounts);
 
                 writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
 
@@ -290,8 +291,9 @@ public sealed partial class SourceGenerator
                     getSortKeyPartInputVariable = i => $"sortKey[{sortKeyPartRangesVariable}[{i}]]";
                 }
 
-                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, false);
-                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, false);
+                var propertyNameCounts = partitionKeyParts.Concat(sortKeyParts).OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
+                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, false, propertyNameCounts);
+                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, false, propertyNameCounts);
 
                 writer.WriteLines($"""
                                    result = {WriteConstructor(targetTypeSpec)};
@@ -359,26 +361,41 @@ public sealed partial class SourceGenerator
                                """);
         }
 
-        private static void WriteParsePropertiesImplementation(SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow)
+        private static void WriteParsePropertiesImplementation(
+            SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow)
+        {
+            var propertyNameCounts = parts.OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
+            WriteParsePropertiesImplementation(writer, parts, getPartInputVariable, shouldThrow, propertyNameCounts);
+        }
+
+        private static void WriteParsePropertiesImplementation(
+            SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow, Dictionary<string, int> propertyNameCounts)
         {
             var valueParts = parts.OfType<ValueKeyPart>().ToArray();
             for (int i = 0; i < valueParts.Length; i++)
             {
+                var valueKeyPart = valueParts[i];
                 string partInputVariable = getPartInputVariable(i);
 
-                switch (valueParts[i])
+                if (valueKeyPart is ConstantKeyPart c)
                 {
-                    case ConstantKeyPart c:
-                        writer.WriteLines($"""
-                                           if (!{partInputVariable}.Equals("{c.Value}", StringComparison.Ordinal))
-                                               {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                    writer.WriteLines($"""
+                                       if (!{partInputVariable}.Equals("{c.Value}", StringComparison.Ordinal))
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
-                                           """);
-                        break;
+                                       """);
+                    continue;
+                }
 
+                (string camelCaseName, string? originalCamelCaseName) = valueKeyPart is PropertyKeyPart propertyPart
+                    ? GetCamelCaseName(propertyPart.Property, propertyNameCounts)
+                    : throw new InvalidOperationException($"Expected a {nameof(PropertyKeyPart)} but got a {valueKeyPart.GetType().Name}");
+
+                switch (valueKeyPart)
+                {
                     case PropertyKeyPart { ParseType: ParseType.Guid } part:
                         writer.WriteLines($"""
-                                           if ({ToStrictLengthCheck(part, partInputVariable)}!Guid.TryParseExact({partInputVariable}, "{part.Format}", out var {part.Property.CamelCaseName}))
+                                           if ({ToStrictLengthCheck(part, partInputVariable)}!Guid.TryParseExact({partInputVariable}, "{part.Format}", out var {camelCaseName}))
                                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
                                            """);
@@ -389,7 +406,7 @@ public sealed partial class SourceGenerator
                                            if ({partInputVariable}.Length == 0)
                                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
-                                           string {part.Property.CamelCaseName} = {partInputVariable}.ToString();
+                                           string {camelCaseName} = {partInputVariable}.ToString();
 
                                            """);
                         break;
@@ -399,7 +416,7 @@ public sealed partial class SourceGenerator
                             throw new InvalidOperationException($"{nameof(part.Property.EnumSpec)} is null");
 
                         writer.WriteLines($"""
-                                           if (!{part.Property.EnumSpec.Name}Helper.TryParse({partInputVariable}, out var {part.Property.CamelCaseName}))
+                                           if (!{part.Property.EnumSpec.Name}Helper.TryParse({partInputVariable}, out var {camelCaseName}))
                                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
                                            """);
@@ -407,15 +424,32 @@ public sealed partial class SourceGenerator
 
                     case PropertyKeyPart { ParseType: ParseType.SpanParsable } part:
                         writer.WriteLines($"""
-                                           if (!{part.Property.Type.FullyQualifiedName}.TryParse({partInputVariable}, out var {part.Property.CamelCaseName}))
+                                           if (!{part.Property.Type.FullyQualifiedName}.TryParse({partInputVariable}, out var {camelCaseName}))
                                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
                                            """);
                         break;
                 }
+
+                if (originalCamelCaseName is not null)
+                {
+                    writer.WriteLines($"""
+                                       if (!{originalCamelCaseName}.Equals({camelCaseName}))
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+
+                                       """);
+                }
             }
 
             return;
+
+            static (string camelCaseName, string? originalCamelCaseName) GetCamelCaseName(PropertySpec property, Dictionary<string, int> propertyNameCounts)
+            {
+                int propertyCount = propertyNameCounts[property.CamelCaseName]++;
+                return propertyCount == 0
+                    ? (property.CamelCaseName, null)
+                    : ($"{property.CamelCaseName}{propertyCount}", property.CamelCaseName);
+            }
 
             static string ToStrictLengthCheck(KeyPart part, string input) =>
                 part.ExactLengthRequirement ? $"{input}.Length != {part.LengthRequired} || " : string.Empty;
@@ -506,14 +540,18 @@ public sealed partial class SourceGenerator
                             break;
                         case PropertyKeyPart { FormatType: FormatType.Guid } p:
                             string formatProvider = invariantFormatting ? InvariantCulture : "null";
+                            writer.StartBlock();
                             writer.WriteLine($"if (!((ISpanFormattable)state.{p.Property.Name}).TryFormat(destination[position..], out int {GetCharsWritten(p.Property)}, \"{p.Format ?? "d"}\", {formatProvider}))");
                             writer.WriteLine("\tthrow new FormatException();\n");
                             writer.WriteLine($"position += {GetCharsWritten(p.Property)};");
+                            writer.EndBlock();
                             break;
                         case PropertyKeyPart { FormatType: FormatType.Enum, Property.EnumSpec: not null } p:
+                            writer.StartBlock();
                             writer.WriteLine($"if (!{p.Property.EnumSpec.Name}Helper.TryFormat(state.{p.Property.Name}, destination[position..], out int {GetCharsWritten(p.Property)}))");
                             writer.WriteLine("\tthrow new FormatException();\n");
                             writer.WriteLine($"position += {GetCharsWritten(p.Property)};");
+                            writer.EndBlock();
                             break;
                         case PropertyKeyPart { FormatType: FormatType.String } p:
                             writer.WriteLine($"state.{p.Property.Name}.CopyTo(destination[position..]);");

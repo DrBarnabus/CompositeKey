@@ -4,6 +4,8 @@ namespace CompositeKey.SourceGeneration.FunctionalTests;
 
 public static class CompositePrimaryKeyTests
 {
+    #region CompositePrimaryKey
+
     [Theory, AutoData]
     public static void CompositePrimaryKey_RoundTripToStringAndParse_ShouldResultInEquivalentKey(CompositePrimaryKey compositeKey)
     {
@@ -161,4 +163,81 @@ public static class CompositePrimaryKeyTests
         ["eccd98c4-d484-4429-896d-8fcdd77c6327#123", "Constant~Three@"],
         ["eccd98c4-d484-4429-896d-8fcdd77c6327#123", "Constant~Three@String~Extra"]
     ];
+
+    #endregion
+
+    #region CompositePrimaryKeyWithSamePropertyUsedTwice
+
+    [Theory, AutoData]
+    public static void CompositePrimaryKeyWithSamePropertyUsedTwice_RoundTripToStringAndParse_ShouldResultInEquivalentKey(CompositePrimaryKeyWithSamePropertyUsedTwice compositeKey)
+    {
+        var result = CompositePrimaryKeyWithSamePropertyUsedTwice.Parse(compositeKey.ToString());
+
+        result.ShouldNotBeNull();
+        result.ShouldBeEquivalentTo(compositeKey);
+    }
+
+    [Theory, AutoData]
+    public static void CompositePrimaryKeyWithSamePropertyUsedTwice_ToString_ShouldReturnCorrectlyFormattedString(CompositePrimaryKeyWithSamePropertyUsedTwice compositeKey)
+    {
+        var id = compositeKey.Id;
+
+        string result = compositeKey.ToString();
+
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"{id}#{id}");
+    }
+
+    [Theory, AutoData]
+    public static void CompositePrimaryKeyWithSamePropertyUsedTwice_Parse_WithValidPrimaryKey_ShouldReturnCorrectlyParsedRecord(CompositePrimaryKeyWithSamePropertyUsedTwice compositeKey)
+    {
+        var id = compositeKey.Id;
+
+        var result = CompositePrimaryKeyWithSamePropertyUsedTwice.Parse($"{id}#{id}");
+
+        result.ShouldNotBeNull();
+        result.Id.ShouldBe(id);
+    }
+
+    [Theory, MemberData(nameof(CompositePrimaryKeyWithSamePropertyUsedTwice_InvalidPrimaryKeys))]
+    public static void CompositePrimaryKeyWithSamePropertyUsedTwice_Parse_WithInvalidPrimaryKey_ShouldThrowFormatException(string primaryKey)
+    {
+        var act = () => CompositePrimaryKeyWithSamePropertyUsedTwice.Parse(primaryKey);
+        act.ShouldThrow<FormatException>();
+    }
+
+    [Theory, AutoData]
+    public static void CompositePrimaryKeyWithSamePropertyUsedTwice_TryParse_WithValidPrimaryKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord(CompositePrimaryKeyWithSamePropertyUsedTwice compositeKey)
+    {
+        var id = compositeKey.Id;
+
+        CompositePrimaryKeyWithSamePropertyUsedTwice.TryParse($"{id}#{id}", out var result).ShouldBeTrue();
+
+        result.ShouldNotBeNull();
+        result.Id.ShouldBe(id);
+    }
+
+    [Theory, MemberData(nameof(CompositePrimaryKeyWithSamePropertyUsedTwice_InvalidPrimaryKeys))]
+    public static void CompositePrimaryKeyWithSamePropertyUsedTwice_TryParse_WithInvalidPrimaryKey_ShouldReturnFalse(string primaryKey)
+    {
+        CompositePrimaryKeyWithSamePropertyUsedTwice.TryParse(primaryKey, out var result).ShouldBeFalse();
+
+        result.ShouldBeNull();
+    }
+
+    public static object[][] CompositePrimaryKeyWithSamePropertyUsedTwice_InvalidPrimaryKeys() =>
+    [
+        ["a"],
+        ["a#b"],
+        ["#"],
+        ["a#"],
+        ["#a"],
+        [""],
+        ["invalid-guid#invalid-guid"],
+        ["eccd98c4-d484-4429-896d-8fcdd77c6327#different-guid"],
+        ["eccd98c4-d484-4429-896d-8fcdd77c6327#eccd98c4-d484-4429-896d-8fcdd77c6328"],
+        ["eccd98c4-d484-4429-896d-8fcdd77c6327#eccd98c4-d484-4429-896d-8fcdd77c6327#extra"]
+    ];
+
+    #endregion
 }

@@ -9,3 +9,6 @@ public sealed partial record CompositePrimaryKey(
 {
     public enum EnumType { One, Two, Three };
 }
+
+[CompositeKey("{Id}#{Id}", PrimaryKeySeparator = '#')]
+public sealed partial record CompositePrimaryKeyWithSamePropertyUsedTwice(Guid Id);
