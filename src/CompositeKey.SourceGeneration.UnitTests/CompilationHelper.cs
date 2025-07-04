@@ -317,6 +317,16 @@ public static class CompilationHelper
         }
         """);
 
+    public static Compilation CreateCompilationWithSamePropertyUsedTwice() => CreateCompilation("""
+        using System;
+        using CompositeKey;
+
+        namespace UnitTests;
+
+        [CompositeKey("{Id}|{Id}")]
+        public partial record KeyWithSamePropertyUsedTwice(Guid Id);
+        """);
+
     public record struct DiagnosticData(DiagnosticSeverity Severity, string FilePath, LinePositionSpan LinePositionSpan, string Message)
     {
         public DiagnosticData(DiagnosticSeverity severity, Location location, string message)

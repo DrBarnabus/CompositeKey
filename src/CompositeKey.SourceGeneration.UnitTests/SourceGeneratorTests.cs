@@ -545,4 +545,11 @@ public static class SourceGeneratorTests
 
         CompilationHelper.AssertDiagnostics(expectedDiagnostics, result.Diagnostics);
     }
+
+    [Fact]
+    public static void KeyWithSamePropertyUsedTwice_ShouldSuccessfullyCompile()
+    {
+        var compilation = CompilationHelper.CreateCompilationWithSamePropertyUsedTwice();
+        CompilationHelper.RunSourceGenerator(compilation);
+    }
 }
