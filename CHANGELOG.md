@@ -3,6 +3,13 @@
 All notable changes to this project will be automatically documented in this file.
 
 
+## [1.4.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.3.1...v1.4.0) (2025-07-04)
+
+
+### Features
+
+* Allow keys to reference the same property more than once ([#25](https://github.com/DrBarnabus/CompositeKey/issues/25)) ([0d696bf](https://github.com/DrBarnabus/CompositeKey/commit/0d696bf0eab23e63449b9136200d5bdae536c5d1))
+
 ### [1.3.1](https://github.com/DrBarnabus/CompositeKey/compare/v1.3.0...v1.3.1) (2025-05-23)
 
 _Updated dependencies_
