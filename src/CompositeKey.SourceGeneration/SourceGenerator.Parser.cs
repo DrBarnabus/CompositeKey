@@ -154,12 +154,13 @@ public sealed partial class SourceGenerator
             (string templateString, char? primaryKeySeparator, _) = compositeKeyAttributeValues;
 
             var templateStringTokenizer = new TemplateStringTokenizer(primaryKeySeparator);
-            var templateTokens = templateStringTokenizer.Tokenize(templateString.AsSpan());
-            if (templateTokens.Count == 0)
+            var tokenizeResult = templateStringTokenizer.Tokenize(templateString.AsSpan());
+            if (!tokenizeResult.Success)
             {
                 ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
                 return null;
             }
+            var templateTokens = tokenizeResult.Tokens;
 
             if (primaryKeySeparator is not null && !templateTokens.Any(tt => tt is PrimaryDelimiterTemplateToken))
             {

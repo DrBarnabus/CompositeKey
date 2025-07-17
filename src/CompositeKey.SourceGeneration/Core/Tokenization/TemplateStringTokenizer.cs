@@ -4,45 +4,49 @@ public class TemplateStringTokenizer(char? primaryKeySeparator)
 {
     private readonly char? _primaryKeySeparator = primaryKeySeparator;
 
-    public List<TemplateToken> Tokenize(ReadOnlySpan<char> input)
+    public TokenizeResult Tokenize(ReadOnlySpan<char> input)
     {
-        try
-        {
-            var templateTokens = new List<TemplateToken>();
+        if (input.IsEmpty)
+            return TokenizeResult.CreateFailure();
 
-            int currentPosition = 0;
-            while (currentPosition < input.Length)
+        var templateTokens = new List<TemplateToken>();
+
+        int currentPosition = 0;
+        while (currentPosition < input.Length)
+        {
+            char current = input[currentPosition];
+
+            if (current == '{')
             {
-                char current = input[currentPosition];
+                var result = ReadProperty(input, ref currentPosition);
+                if (!result.Success)
+                    return TokenizeResult.CreateFailure();
 
-                if (current == '{')
-                {
-                    templateTokens.Add(ReadProperty(input, ref currentPosition));
-                }
-                else if (char.IsLetterOrDigit(current))
-                {
-                    templateTokens.Add(ReadConstantValue(input, ref currentPosition));
-                }
-                else
-                {
-                    var templateToken = _primaryKeySeparator == current
-                        ? TemplateToken.PrimaryDelimiter(current)
-                        : TemplateToken.Delimiter(current);
-
-                    templateTokens.Add(templateToken);
-                    currentPosition++;
-                }
+                templateTokens.Add(result.Value);
             }
+            else if (char.IsLetterOrDigit(current))
+            {
+                var result = ReadConstantValue(input, ref currentPosition);
+                if (!result.Success)
+                    return TokenizeResult.CreateFailure();
 
-            return templateTokens;
+                templateTokens.Add(result.Value);
+            }
+            else
+            {
+                var templateToken = _primaryKeySeparator == current
+                    ? TemplateToken.PrimaryDelimiter(current)
+                    : TemplateToken.Delimiter(current);
+
+                templateTokens.Add(templateToken);
+                currentPosition++;
+            }
         }
-        catch
-        {
-            return [];
-        }
+
+        return TokenizeResult.CreateSuccess(templateTokens);
     }
 
-    private static TemplateToken ReadProperty(ReadOnlySpan<char> input, ref int currentPosition)
+    private static ReadResult<TemplateToken> ReadProperty(ReadOnlySpan<char> input, ref int currentPosition)
     {
         int startPosition = currentPosition + 1;
         currentPosition++;
@@ -50,30 +54,45 @@ public class TemplateStringTokenizer(char? primaryKeySeparator)
         while (currentPosition < input.Length && input[currentPosition] != '}')
         {
             if (input[currentPosition] == '{')
-                throw new InvalidOperationException("Encountered a '{{' character before a closing '}}' when parsing a property.");
+                return ReadResult<TemplateToken>.CreateFailure();
 
             currentPosition++;
         }
 
-        if (input[currentPosition] != '}')
-            throw new InvalidOperationException("Finished parsing property but last character was not a '}}'.");
+        if (currentPosition >= input.Length || input[currentPosition] != '}')
+            return ReadResult<TemplateToken>.CreateFailure();
 
-        input = input.Slice(startPosition, currentPosition - startPosition);
+        var propertySpan = input.Slice(startPosition, currentPosition - startPosition);
         currentPosition++;
 
-        int colonIndex = input.IndexOf(':');
-        return colonIndex != -1
-            ? TemplateToken.Property(input[..colonIndex].ToString(), input[(colonIndex + 1)..].ToString())
-            : TemplateToken.Property(input.ToString());
+        int colonIndex = propertySpan.IndexOf(':');
+        var token = colonIndex != -1
+            ? TemplateToken.Property(propertySpan[..colonIndex].ToString(), propertySpan[(colonIndex + 1)..].ToString())
+            : TemplateToken.Property(propertySpan.ToString());
+
+        return ReadResult<TemplateToken>.CreateSuccess(token);
     }
 
-    private static TemplateToken ReadConstantValue(ReadOnlySpan<char> input, ref int currentPosition)
+    private static ReadResult<TemplateToken> ReadConstantValue(ReadOnlySpan<char> input, ref int currentPosition)
     {
         int startPosition = currentPosition;
 
         while (currentPosition < input.Length && char.IsLetterOrDigit(input[currentPosition]))
             currentPosition++;
 
-        return TemplateToken.Constant(input[startPosition..currentPosition].ToString());
+        var token = TemplateToken.Constant(input[startPosition..currentPosition].ToString());
+        return ReadResult<TemplateToken>.CreateSuccess(token);
     }
+}
+
+public readonly record struct TokenizeResult(bool Success, List<TemplateToken> Tokens)
+{
+    public static TokenizeResult CreateFailure() => new(false, []);
+    public static TokenizeResult CreateSuccess(List<TemplateToken> tokens) => new(true, tokens);
+}
+
+public readonly record struct ReadResult<T>(bool Success, T Value)
+{
+    public static ReadResult<T> CreateFailure() => new(false, default!);
+    public static ReadResult<T> CreateSuccess(T value) => new(true, value);
 }
