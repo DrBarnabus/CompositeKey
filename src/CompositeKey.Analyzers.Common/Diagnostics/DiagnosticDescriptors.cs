@@ -1,12 +1,19 @@
-﻿using CompositeKey.SourceGeneration.Resources;
+﻿using CompositeKey.Analyzers.Common.Resources;
 using Microsoft.CodeAnalysis;
 
-namespace CompositeKey.SourceGeneration;
+namespace CompositeKey.Analyzers.Common.Diagnostics;
 
-internal static class DiagnosticDescriptors
+/// <summary>
+/// Contains diagnostic descriptors for CompositeKey validation errors.
+/// These diagnostics are shared between the source generator and analyzers.
+/// </summary>
+public static class DiagnosticDescriptors
 {
     private const string Category = "CompositeKey.SourceGeneration";
 
+    /// <summary>
+    /// COMPOSITE0001: C# language version not supported by the source generator.
+    /// </summary>
     public static DiagnosticDescriptor UnsupportedLanguageVersion { get; } = new(
         id: "COMPOSITE0001",
         title: Strings.UnsupportedLanguageVersionTitle,
@@ -15,6 +22,9 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>
+    /// COMPOSITE0002: The type annotated with the 'CompositeKey' attribute is not supported.
+    /// </summary>
     public static DiagnosticDescriptor UnsupportedCompositeType { get; } = new(
         id: "COMPOSITE0002",
         title: Strings.UnsupportedCompositeTypeTitle,
@@ -23,6 +33,9 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>
+    /// COMPOSITE0003: The type annotated with the 'CompositeKey' attribute must be partial.
+    /// </summary>
     public static DiagnosticDescriptor CompositeTypeMustBePartial { get; } = new(
         id: "COMPOSITE0003",
         title: Strings.CompositeTypeMustBePartialTitle,
@@ -31,6 +44,9 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>
+    /// COMPOSITE0004: The type annotated with the 'CompositeKey' attribute has no obvious constructor.
+    /// </summary>
     public static DiagnosticDescriptor NoObviousDefaultConstructor { get; } = new(
         id: "COMPOSITE0004",
         title: Strings.NoObviousDefaultConstructorTitle,
@@ -39,6 +55,9 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>
+    /// COMPOSITE0005: The TemplateString provided to the 'CompositeKey' attribute is invalid.
+    /// </summary>
     public static DiagnosticDescriptor EmptyOrInvalidTemplateString { get; } = new(
         id: "COMPOSITE0005",
         title: Strings.EmptyOrInvalidTemplateStringTitle,
@@ -47,6 +66,9 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>
+    /// COMPOSITE0006: The 'PrimaryKeySeparator' provided to the 'CompositeKey' attribute is unused.
+    /// </summary>
     public static DiagnosticDescriptor PrimaryKeySeparatorMissingFromTemplateString { get; } = new(
         id: "COMPOSITE0006",
         title: Strings.PrimaryKeySeparatorMissingFromTemplateStringTitle,
@@ -55,6 +77,9 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>
+    /// COMPOSITE0007: Property used in 'TemplateString' must have accessible get/set methods.
+    /// </summary>
     public static DiagnosticDescriptor PropertyMustHaveAccessibleGetterAndSetter { get; } = new(
         id: "COMPOSITE0007",
         title: Strings.PropertyMustHaveAccessibleGetterAndSetterTitle,
@@ -63,6 +88,9 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>
+    /// COMPOSITE0008: Property used in 'TemplateString' has invalid or unsupported format specifier.
+    /// </summary>
     public static DiagnosticDescriptor PropertyHasInvalidOrUnsupportedFormat { get; } = new(
         id: "COMPOSITE0008",
         title: Strings.PropertyHasInvalidOrUnsupportedFormatTitle,

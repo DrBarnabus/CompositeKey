@@ -33,6 +33,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\CompositeKey\CompositeKey.csproj" />
+        <ProjectReference Include="..\CompositeKey.Analyzers.Common\CompositeKey.Analyzers.Common.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetTargetFramework="TargetFramework=netstandard2.0" />
         <ProjectReference Include="..\CompositeKey.SourceGeneration\CompositeKey.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetTargetFramework="TargetFramework=netstandard2.0" />
     </ItemGroup>
 
