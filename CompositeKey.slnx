@@ -3,6 +3,7 @@
         <File Path="src\Directory.Build.props" />
         <File Path="src\Directory.Packages.props" />
 
+        <Project Path="src\CompositeKey.Analyzers.Common\CompositeKey.Analyzers.Common.csproj" Type="Classic C#" />
         <Project Path="src\CompositeKey.SourceGeneration\CompositeKey.SourceGeneration.csproj" Type="Classic C#" />
         <Project Path="src\CompositeKey\CompositeKey.csproj" Type="Classic C#" />
     </Folder>

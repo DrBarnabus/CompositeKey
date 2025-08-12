@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using CompositeKey.Analyzers.Common.Diagnostics;
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Core.Extensions;
 using CompositeKey.SourceGeneration.Core.Tokenization;
