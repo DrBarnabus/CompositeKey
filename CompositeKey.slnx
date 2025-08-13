@@ -8,6 +8,7 @@
         <Project Path="src\CompositeKey\CompositeKey.csproj" Type="Classic C#" />
     </Folder>
     <Folder Name="/tests/">
+        <Project Path="src\CompositeKey.Analyzers.Common.UnitTests\CompositeKey.Analyzers.Common.UnitTests.csproj" Type="Classic C#" />
         <Project Path="src\CompositeKey.SourceGeneration.FunctionalTests\CompositeKey.SourceGeneration.FunctionalTests.csproj" Type="Classic C#" />
         <Project Path="src\CompositeKey.SourceGeneration.UnitTests\CompositeKey.SourceGeneration.UnitTests.csproj" Type="Classic C#" />
     </Folder>

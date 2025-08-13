@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using CompositeKey.Analyzers.Common.Diagnostics;
+using CompositeKey.Analyzers.Common.Validation;
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Core.Extensions;
 using CompositeKey.SourceGeneration.Core.Tokenization;
@@ -56,26 +55,26 @@ public sealed partial class SourceGenerator
                 return null;
             }
 
-            if (!targetTypeSymbol.IsRecord)
+            // Validate type structure using comprehensive shared validation
+            var validationResult = TypeValidation.ValidateTypeForCompositeKey(
+                targetTypeSymbol,
+                typeDeclarationSyntax,
+                semanticModel,
+                _knownTypeSymbols.CompositeKeyConstructorAttributeType,
+                cancellationToken);
+
+            if (!validationResult.IsSuccess)
             {
-                ReportDiagnostic(DiagnosticDescriptors.UnsupportedCompositeType, _location, targetTypeSymbol.Name);
+                ReportDiagnostic(validationResult.Descriptor, _location, validationResult.MessageArgs);
                 return null;
             }
 
-            if (!TryGetTargetTypeDeclarations(typeDeclarationSyntax, semanticModel, out var targetTypeDeclarations, cancellationToken))
-            {
-                ReportDiagnostic(DiagnosticDescriptors.CompositeTypeMustBePartial, _location, targetTypeSymbol.Name);
-                return null;
-            }
+            // Use validated data from the validation result (guaranteed non-null due to MemberNotNullWhen on IsSuccess)
+            var targetTypeDeclarations = validationResult.TargetTypeDeclarations;
+            var constructor = validationResult.Constructor;
 
             var compositeKeyAttributeValues = ParseCompositeKeyAttributeValues(targetTypeSymbol);
             Debug.Assert(compositeKeyAttributeValues is not null);
-
-            if (TryGetObviousOrExplicitlyMarkedConstructor(targetTypeSymbol) is not { } constructor)
-            {
-                ReportDiagnostic(DiagnosticDescriptors.NoObviousDefaultConstructor, _location, targetTypeSymbol.Name);
-                return null;
-            }
 
             var constructorParameters = ParseConstructorParameters(constructor, out var constructionStrategy, out bool constructorSetsRequiredMembers);
             var properties = ParseProperties(targetTypeSymbol);
@@ -404,33 +403,6 @@ public sealed partial class SourceGenerator
             return constructorParameters;
         }
 
-        private IMethodSymbol? TryGetObviousOrExplicitlyMarkedConstructor(INamedTypeSymbol typeSymbol)
-        {
-            var publicConstructors = typeSymbol.Constructors
-                .Where(c => !c.IsStatic && !(c.IsImplicitlyDeclared && typeSymbol.IsValueType && c.Parameters.Length == 0))
-                .Where(c => !(c.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type, typeSymbol)))
-                .ToArray();
-
-            var lonePublicConstructor = publicConstructors.Length == 1 ? publicConstructors[0] : null;
-            IMethodSymbol? constructorWithAttribute = null, publicParameterlessConstructor = null;
-
-            foreach (var constructor in publicConstructors)
-            {
-                if (constructor.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, _knownTypeSymbols.CompositeKeyConstructorAttributeType)))
-                {
-                    if (constructorWithAttribute is not null)
-                        return null; // Somehow we found a duplicate so let's just return null so the diagnostic is emitted
-
-                    constructorWithAttribute = constructor;
-                }
-                else if (constructor.Parameters.Length == 0)
-                {
-                    publicParameterlessConstructor = constructor;
-                }
-            }
-
-            return constructorWithAttribute ?? publicParameterlessConstructor ?? lonePublicConstructor;
-        }
 
         private CompositeKeyAttributeValues? ParseCompositeKeyAttributeValues(INamedTypeSymbol targetTypeSymbol)
         {
@@ -481,55 +453,5 @@ public sealed partial class SourceGenerator
             }
         }
 
-        private static bool TryGetTargetTypeDeclarations(
-            TypeDeclarationSyntax typeDeclarationSyntax,
-            SemanticModel semanticModel,
-            [NotNullWhen(true)] out List<string>? targetTypeDeclarations,
-            CancellationToken cancellationToken)
-        {
-            targetTypeDeclarations = null;
-
-            for (var current = typeDeclarationSyntax; current != null; current = current.Parent as TypeDeclarationSyntax)
-            {
-                StringBuilder stringBuilder = new();
-
-                bool isPartialType = false;
-                foreach (var modifier in current.Modifiers)
-                {
-                    stringBuilder.Append(modifier.Text);
-                    stringBuilder.Append(' ');
-
-                    isPartialType |= modifier.IsKind(SyntaxKind.PartialKeyword);
-                }
-
-                if (!isPartialType)
-                    return false;
-
-                stringBuilder.Append(GetTypeKindKeyword(current));
-                stringBuilder.Append(' ');
-
-                var typeSymbol = semanticModel.GetDeclaredSymbol(current, cancellationToken);
-                Debug.Assert(typeSymbol is not null);
-
-                stringBuilder.Append(typeSymbol!.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-
-                (targetTypeDeclarations ??= []).Add(stringBuilder.ToString());
-            }
-
-            return targetTypeDeclarations?.Count > 0;
-
-            static string GetTypeKindKeyword(TypeDeclarationSyntax typeDeclarationSyntax) =>
-                typeDeclarationSyntax.Kind() switch
-                {
-                    SyntaxKind.ClassDeclaration => "class",
-                    SyntaxKind.InterfaceDeclaration => "interface",
-                    SyntaxKind.StructDeclaration => "struct",
-                    SyntaxKind.RecordDeclaration => "record",
-                    SyntaxKind.RecordStructDeclaration => "record struct",
-                    SyntaxKind.EnumDeclaration => "enum",
-                    SyntaxKind.DelegateDeclaration => "delegate",
-                    _ => throw new ArgumentOutOfRangeException(nameof(typeDeclarationSyntax))
-                };
-        }
     }
 }
