@@ -18,6 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\CompositeKey.Analyzers\CompositeKey.Analyzers.csproj" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
         <ProjectReference Include="..\CompositeKey.SourceGeneration\CompositeKey.SourceGeneration.csproj" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
     </ItemGroup>
 
@@ -30,9 +31,13 @@
             <Output TaskParameter="TargetOutputs" ItemName="PackAsAnalyzerFile" />
         </MSBuild>
 
+        <RemoveDuplicates Inputs="@(PackAsAnalyzerFile)">
+            <Output TaskParameter="Filtered" ItemName="DeduplicatedPackAsAnalyzerFile" />
+        </RemoveDuplicates>
+
         <ItemGroup>
-            <Content Include="@(PackAsAnalyzerFile->WithMetadataValue('IsSymbol', ''))" Pack="True" Condition="'%(PackAsAnalyzerFile.TargetFramework)' == 'netstandard2.0'" />
-            <_TargetPathsToSymbols Include="@(PackAsAnalyzerFile->WithMetadataValue('IsSymbol', 'true'))" TargetPath="/%(PackAsAnalyzerFile.PackagePath)" />
+            <Content Include="@(DeduplicatedPackAsAnalyzerFile->WithMetadataValue('IsSymbol', ''))" Pack="True" Condition="'%(DeduplicatedPackAsAnalyzerFile.TargetFramework)' == 'netstandard2.0'" />
+            <_TargetPathsToSymbols Include="@(DeduplicatedPackAsAnalyzerFile->WithMetadataValue('IsSymbol', 'true'))" TargetPath="/%(DeduplicatedPackAsAnalyzerFile.PackagePath)" />
         </ItemGroup>
     </Target>
 
