@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
+
+        <AnalyzerLanguage>cs</AnalyzerLanguage>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+        <DefineConstants>$(DefineConstants);BUILDING_ANALYZER</DefineConstants>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Using Include="JetBrains.Annotations" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" />
+        <PackageReference Include="PolySharp">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\CompositeKey.Analyzers.Common\CompositeKey.Analyzers.Common.csproj" PrivateAssets="all" ReferenceOutputAssembly="true" />
+    </ItemGroup>
+
+    <Target Name="GetPackAsAnalyzerFiles" DependsOnTargets="$(GenerateNuspecDependsOn);GetCommonAssemblyPath" Returns="@(PackAsAnalyzerFile)">
+        <PropertyGroup>
+            <PackAsAnalyzerPath>analyzers/dotnet</PackAsAnalyzerPath>
+            <PackAsAnalyzerPath Condition="'$(AnalyzerRoslynVersion)' != ''">$(PackAsAnalyzerPath)/roslyn$(AnalyzerRoslynVersion)</PackAsAnalyzerPath>
+            <PackAsAnalyzerPath Condition="'$(AnalyzerLanguage)' != ''">$(PackAsAnalyzerPath)/$(AnalyzerLanguage)</PackAsAnalyzerPath>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <PackAsAnalyzerFile Include="@(_BuildOutputInPackage)" />
+            <PackAsAnalyzerFile Include="@(_TargetPathsToSymbols)" IsSymbol="true" />
+            <PackAsAnalyzerFile PackagePath="$(PackAsAnalyzerPath)/%(TargetPath)" />
+
+            <!-- Include Common project assembly using the result of GetCommonAssemblyPath -->
+            <PackAsAnalyzerFile Include="$(CommonAssemblyPath)"
+                                Condition="Exists('$(CommonAssemblyPath)')"
+                                PackagePath="$(PackAsAnalyzerPath)/CompositeKey.Analyzers.Common.dll"
+                                TargetFramework="netstandard2.0" />
+        </ItemGroup>
+    </Target>
+
+    <Target Name="GetCommonAssemblyPath">
+        <MSBuild Projects="@(ProjectReference)"
+                 Condition="'%(ProjectReference.Identity)' == '../CompositeKey.Analyzers.Common/CompositeKey.Analyzers.Common.csproj'"
+                 Targets="GetTargetPath"
+                 Properties="TargetFramework=netstandard2.0">
+            <Output TaskParameter="TargetOutputs" PropertyName="CommonAssemblyPath" />
+        </MSBuild>
+    </Target>
+
+</Project>

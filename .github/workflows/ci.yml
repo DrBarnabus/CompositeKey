@@ -2,10 +2,10 @@ name: CI
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
 
   pull_request:
-    branches: ['main']
+    branches: ["main"]
 
   workflow_dispatch:
 
@@ -69,7 +69,10 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} -p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
       - name: Unit Test
-        run: dotnet test src/CompositeKey.SourceGeneration.UnitTests -c Release --no-restore --no-build --logger:"junit;LogFileName={framework}.results.xml" --collect:"XPlat Code Coverage" --results-directory unit-test-results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+        run: |
+          dotnet test src/CompositeKey.SourceGeneration.UnitTests -c Release --no-restore --no-build --logger:"junit;LogFileName=sourcegeneration.{framework}.results.xml" --collect:"XPlat Code Coverage" --results-directory unit-test-results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+          dotnet test src/CompositeKey.Analyzers.Common.UnitTests -c Release --no-restore --no-build --logger:"junit;LogFileName=analyzers.common.{framework}.results.xml" --collect:"XPlat Code Coverage" --results-directory unit-test-results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+          dotnet test src/CompositeKey.Analyzers.UnitTests -c Release --no-restore --no-build --logger:"junit;LogFileName=analyzers.{framework}.results.xml" --collect:"XPlat Code Coverage" --results-directory unit-test-results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
       - name: Functional Test
         run: dotnet test src/CompositeKey.SourceGeneration.FunctionalTests -c Release --no-restore --no-build --logger:"junit;LogFileName={framework}.results.xml" --results-directory functional-test-results
       - name: Pack
