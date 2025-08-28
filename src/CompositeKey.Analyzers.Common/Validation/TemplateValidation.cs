@@ -65,11 +65,24 @@ public static class TemplateValidation
         foreach (var token in propertyTokens)
         {
             var property = availableProperties.FirstOrDefault(p => p.Name == token.Name);
-            if (property == null || !property.HasGetter || !property.HasSetter)
+            if (property == null)
             {
                 return TemplateValidationResult.Failure(
                     DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter,
                     token.Name);
+            }
+
+            var accessibilityInfo = new PropertyValidation.PropertyAccessibilityInfo(
+                property.Name,
+                property.HasGetter,
+                property.HasSetter);
+
+            var accessibilityResult = PropertyValidation.ValidatePropertyAccessibility(accessibilityInfo);
+            if (!accessibilityResult.IsSuccess)
+            {
+                return TemplateValidationResult.Failure(
+                    accessibilityResult.Descriptor,
+                    accessibilityResult.MessageArgs);
             }
         }
 

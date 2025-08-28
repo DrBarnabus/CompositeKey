@@ -7,7 +7,7 @@ namespace CompositeKey.Analyzers.UnitTests.Analyzers;
 /// Comprehensive tests for TypeStructureAnalyzer validating type structure requirements
 /// for CompositeKey-annotated types including location precision verification.
 /// </summary>
-public class TypeStructureAnalyzerTests
+public static class TypeStructureAnalyzerTests
 {
     /// <summary>
     /// Tests for supported type validation (COMPOSITE0002).
@@ -255,7 +255,7 @@ public class TypeStructureAnalyzerTests
                     public partial record UserKey
                     {
                         public string UserId { get; set; }
-                        
+
                         public UserKey(string userId)
                         {
                             UserId = userId;
@@ -281,11 +281,11 @@ public class TypeStructureAnalyzerTests
                     public partial record UserKey
                     {
                         public string UserId { get; set; }
-                        
+
                         private UserKey()
                         {
                         }
-                        
+
                         private UserKey(string userId)
                         {
                             UserId = userId;
@@ -311,7 +311,7 @@ public class TypeStructureAnalyzerTests
                     public partial record UserKey
                     {
                         public string UserId { get; set; }
-                        
+
                         public UserKey()
                         {
                         }
@@ -336,12 +336,12 @@ public class TypeStructureAnalyzerTests
                     public partial record UserKey
                     {
                         public string UserId { get; set; }
-                        
+
                         public UserKey(string userId)
                         {
                             UserId = userId;
                         }
-                        
+
                         private UserKey()
                         {
                         }
@@ -740,11 +740,11 @@ public class TypeStructureAnalyzerTests
                         public string DisplayName { get; init; } = "";
                         public DateTime CreatedAt { get; init; } = DateTime.Now;
                         public List<string> Tags { get; init; } = new();
-                        
+
                         // Methods
                         public string GetFullKey() => $"{Id}_{Type}_{Version:000}";
                         public override string ToString() => GetFullKey();
-                        
+
                         // Static members
                         public static ComplexKey CreateDefault(string id) => new(id, "default", 1);
                     }
@@ -815,7 +815,7 @@ public class TypeStructureAnalyzerTests
             // Assert
             supportedDiagnostics.ShouldNotBeEmpty();
             supportedDiagnostics.Length.ShouldBe(3);
-            
+
             var diagnosticIds = supportedDiagnostics.Select(d => d.Id).ToList();
             diagnosticIds.ShouldContain("COMPOSITE0002"); // UnsupportedCompositeType
             diagnosticIds.ShouldContain("COMPOSITE0003"); // CompositeTypeMustBePartial
