@@ -1,4 +1,4 @@
-﻿namespace CompositeKey.SourceGeneration.Core.Tokenization;
+namespace CompositeKey.Analyzers.Common.Tokenization;
 
 public class TemplateStringTokenizer(char? primaryKeySeparator)
 {
@@ -34,11 +34,18 @@ public class TemplateStringTokenizer(char? primaryKeySeparator)
             }
             else
             {
-                var templateToken = _primaryKeySeparator == current
-                    ? TemplateToken.PrimaryDelimiter(current)
-                    : TemplateToken.Delimiter(current);
+                if (_primaryKeySeparator == current)
+                {
+                    if (templateTokens.Any(tt => tt.Type == TemplateToken.TemplateTokenType.PrimaryDelimiter))
+                        return TokenizeResult.CreateFailure();
 
-                templateTokens.Add(templateToken);
+                    templateTokens.Add(TemplateToken.PrimaryDelimiter(current));
+                }
+                else
+                {
+                    templateTokens.Add(TemplateToken.Delimiter(current));
+                }
+
                 currentPosition++;
             }
         }

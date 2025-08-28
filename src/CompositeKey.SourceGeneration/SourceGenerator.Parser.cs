@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using CompositeKey.Analyzers.Common.Diagnostics;
+using CompositeKey.Analyzers.Common.Tokenization;
 using CompositeKey.Analyzers.Common.Validation;
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Core.Extensions;
-using CompositeKey.SourceGeneration.Core.Tokenization;
 using CompositeKey.SourceGeneration.Model;
 using CompositeKey.SourceGeneration.Model.Key;
 using Microsoft.CodeAnalysis;
@@ -90,12 +90,6 @@ public sealed partial class SourceGenerator
             KeySpec key;
             if (primaryDelimiterKeyPart is null)
             {
-                if (!keyParts.OfType<ValueKeyPart>().Any())
-                {
-                    ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, compositeKeyAttributeValues!.TemplateString);
-                    return null;
-                }
-
                 // If we reach this branch then it's just a Primary Key
                 key = new PrimaryKeySpec(compositeKeyAttributeValues!.InvariantCulture, keyParts.ToImmutableEquatableArray());
             }
@@ -103,19 +97,6 @@ public sealed partial class SourceGenerator
             {
                 // If we reach this branch then it's a "Composite" Primary Key
                 var (partitionKeyParts, sortKeyParts) = SplitKeyPartsIntoPartitionAndSortKey(keyParts);
-
-                if (!partitionKeyParts.OfType<ValueKeyPart>().Any())
-                {
-                    ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, compositeKeyAttributeValues!.TemplateString);
-                    return null;
-                }
-
-                if (!sortKeyParts.OfType<ValueKeyPart>().Any())
-                {
-                    ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, compositeKeyAttributeValues!.TemplateString);
-                    return null;
-                }
-
                 key = new CompositePrimaryKeySpec(
                     compositeKeyAttributeValues!.InvariantCulture,
                     keyParts.ToImmutableEquatableArray(),
@@ -153,18 +134,29 @@ public sealed partial class SourceGenerator
         {
             (string templateString, char? primaryKeySeparator, _) = compositeKeyAttributeValues;
 
-            var templateStringTokenizer = new TemplateStringTokenizer(primaryKeySeparator);
-            var tokenizeResult = templateStringTokenizer.Tokenize(templateString.AsSpan());
-            if (!tokenizeResult.Success)
+            var (tokenizationSuccessful, templateTokens) = TemplateValidation.TokenizeTemplateString(templateString, primaryKeySeparator);
+            if (!tokenizationSuccessful)
             {
                 ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
                 return null;
             }
-            var templateTokens = tokenizeResult.Tokens;
 
-            if (primaryKeySeparator is not null && !templateTokens.Any(tt => tt is PrimaryDelimiterTemplateToken))
+            var separatorValidation = TemplateValidation.ValidatePrimaryKeySeparator(templateString, primaryKeySeparator, templateTokens);
+            if (!separatorValidation.IsSuccess)
             {
-                ReportDiagnostic(DiagnosticDescriptors.PrimaryKeySeparatorMissingFromTemplateString, _location, templateString, primaryKeySeparator);
+                ReportDiagnostic(separatorValidation.Descriptor, _location, separatorValidation.MessageArgs);
+                return null;
+            }
+
+            if (!TemplateValidation.HasValidTemplateStructure(templateTokens))
+            {
+                ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
+                return null;
+            }
+
+            if (primaryKeySeparator.HasValue && !TemplateValidation.ValidatePartitionAndSortKeyStructure(templateTokens, out _))
+            {
+                ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
                 return null;
             }
 
@@ -193,12 +185,18 @@ public sealed partial class SourceGenerator
 
             PropertyKeyPart? ToPropertyKeyPart(PropertyTemplateToken templateToken)
             {
-                var property = properties.FirstOrDefault(p => p.Spec.Name == templateToken.Name);
-                if (property == default || property.Spec is not { HasGetter: true, HasSetter: true })
+                var availableProperties = properties
+                    .Select(p => new TemplateValidation.PropertyInfo(p.Spec.Name, p.Spec.HasGetter, p.Spec.HasSetter))
+                    .ToList();
+
+                var propertyValidation = TemplateValidation.ValidatePropertyReferences([templateToken], availableProperties);
+                if (!propertyValidation.IsSuccess)
                 {
-                    ReportDiagnostic(DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter, _location, templateToken.Name);
+                    ReportDiagnostic(propertyValidation.Descriptor, _location, propertyValidation.MessageArgs);
                     return null;
                 }
+
+                var property = properties.First(p => p.Spec.Name == templateToken.Name);
 
                 propertiesUsedInKey.Add(property);
                 var (propertySpec, typeSymbol) = property;
