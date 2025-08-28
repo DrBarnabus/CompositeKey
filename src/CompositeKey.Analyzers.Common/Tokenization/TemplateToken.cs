@@ -1,4 +1,4 @@
-﻿namespace CompositeKey.SourceGeneration.Core.Tokenization;
+namespace CompositeKey.Analyzers.Common.Tokenization;
 
 public abstract record TemplateToken(TemplateToken.TemplateTokenType Type)
 {
