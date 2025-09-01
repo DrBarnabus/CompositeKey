@@ -8,7 +8,7 @@ namespace CompositeKey.Analyzers.UnitTests.Analyzers;
 /// Comprehensive tests for TemplateStringAnalyzer validating template string format,
 /// primary key separator requirements, and precise diagnostic location targeting.
 /// </summary>
-public class TemplateStringAnalyzerTests
+public static class TemplateStringAnalyzerTests
 {
     /// <summary>
     /// Tests for template format validation (COMPOSITE0005).

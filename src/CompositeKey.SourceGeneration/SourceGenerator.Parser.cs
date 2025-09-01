@@ -201,73 +201,74 @@ public sealed partial class SourceGenerator
                 propertiesUsedInKey.Add(property);
                 var (propertySpec, typeSymbol) = property;
 
-                if (SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.GuidType))
-                {
-                    string format = templateToken.Format?.ToLowerInvariant() ?? "d";
-
-                    int lengthRequired;
-                    bool exactLengthRequirement = true;
-                    switch (format)
-                    {
-                        case "d":
-                            lengthRequired = 36;
-                            break;
-
-                        case "n":
-                            lengthRequired = 32;
-                            break;
-
-                        case "b" or "p":
-                            lengthRequired = 38;
-                            break;
-
-                        case "x":
-                            lengthRequired = 32;
-                            exactLengthRequirement = false;
-                            break;
-
-                        default:
-                            ReportDiagnostic(DiagnosticDescriptors.PropertyHasInvalidOrUnsupportedFormat, _location, propertySpec.Name, templateToken.Format);
-                            return null;
-                    }
-
-                    return new PropertyKeyPart(propertySpec, format, ParseType.Guid, FormatType.Guid)
-                    {
-                        LengthRequired = lengthRequired,
-                        ExactLengthRequirement = exactLengthRequirement
-                    };
-                }
-
-                if (SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.StringType))
-                {
-                    return new PropertyKeyPart(propertySpec, null, ParseType.String, FormatType.String)
-                    {
-                        LengthRequired = 1,
-                        ExactLengthRequirement = false
-                    };
-                }
-
-                if (typeSymbol.TypeKind == TypeKind.Enum)
-                {
-                    string format = templateToken.Format?.ToLowerInvariant() ?? "g";
-                    return new PropertyKeyPart(propertySpec, format, ParseType.Enum, FormatType.Enum)
-                    {
-                        LengthRequired = 1,
-                        ExactLengthRequirement = false
-                    };
-                }
-
                 var interfaces = typeSymbol.AllInterfaces;
                 bool isSpanParsable = interfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith("global::System.ISpanParsable"));
                 bool isSpanFormattable = interfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Equals("global::System.ISpanFormattable"));
 
-                if (!isSpanParsable || !isSpanFormattable)
-                    throw new NotSupportedException($"Unsupported property of type '{propertySpec.Type.FullyQualifiedName}'");
+                var typeInfo = new PropertyValidation.PropertyTypeInfo(
+                    TypeName: propertySpec.Type.FullyQualifiedName,
+                    IsGuid: SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.GuidType),
+                    IsString: SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.StringType),
+                    IsEnum: typeSymbol.TypeKind == TypeKind.Enum,
+                    IsSpanParsable: isSpanParsable,
+                    IsSpanFormattable: isSpanFormattable);
 
-                return new PropertyKeyPart(propertySpec, templateToken.Format, ParseType.SpanParsable, FormatType.SpanFormattable)
+                var formatValidation = PropertyValidation.ValidatePropertyFormat(
+                    propertySpec.Name,
+                    typeInfo,
+                    templateToken.Format);
+
+                if (!formatValidation.IsSuccess)
                 {
-                    LengthRequired = 1,
-                    ExactLengthRequirement = false
+                    ReportDiagnostic(formatValidation.Descriptor, _location, formatValidation.MessageArgs);
+                    return null;
+                }
+
+                var typeCompatibility = PropertyValidation.ValidatePropertyTypeCompatibility(
+                    propertySpec.Name,
+                    typeInfo);
+
+                if (!typeCompatibility.IsSuccess)
+                {
+                    throw new NotSupportedException($"Unsupported property of type '{propertySpec.Type.FullyQualifiedName}'");
+                }
+
+                var lengthInfo = PropertyValidation.GetFormattedLength(typeInfo, templateToken.Format);
+                int lengthRequired = lengthInfo?.length ?? 1;
+                bool exactLengthRequirement = lengthInfo?.isExact ?? false;
+
+                ParseType parseType;
+                FormatType formatType;
+                string? format = templateToken.Format;
+
+                if (typeInfo.IsGuid)
+                {
+                    parseType = ParseType.Guid;
+                    formatType = FormatType.Guid;
+                    format = templateToken.Format?.ToLowerInvariant() ?? "d";
+                }
+                else if (typeInfo.IsString)
+                {
+                    parseType = ParseType.String;
+                    formatType = FormatType.String;
+                    format = null;
+                }
+                else if (typeInfo.IsEnum)
+                {
+                    parseType = ParseType.Enum;
+                    formatType = FormatType.Enum;
+                    format = templateToken.Format?.ToLowerInvariant() ?? "g";
+                }
+                else
+                {
+                    parseType = ParseType.SpanParsable;
+                    formatType = FormatType.SpanFormattable;
+                }
+
+                return new PropertyKeyPart(propertySpec, format, parseType, formatType)
+                {
+                    LengthRequired = lengthRequired,
+                    ExactLengthRequirement = exactLengthRequirement
                 };
             }
         }
