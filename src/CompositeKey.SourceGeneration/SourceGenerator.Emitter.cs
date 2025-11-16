@@ -51,6 +51,7 @@ public sealed partial class SourceGenerator
 
             WriteFormatMethodBodyForKeyParts(writer, "public override string ToString()", keyParts, keySpec.InvariantFormatting);
             WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", keyParts, keySpec.InvariantFormatting);
+            WriteDynamicFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString(int throughPartIndex, bool includeTrailingDelimiter = true)", keyParts, keySpec.InvariantFormatting);
 
             WriteParseMethodImplementation();
             WriteTryParseMethodImplementation();
@@ -138,7 +139,9 @@ public sealed partial class SourceGenerator
 
             WriteFormatMethodBodyForKeyParts(writer, "public override string ToString()", keySpec.AllParts, keySpec.InvariantFormatting);
             WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", partitionKeyParts, keySpec.InvariantFormatting);
+            WriteDynamicFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString(int throughPartIndex, bool includeTrailingDelimiter = true)", partitionKeyParts, keySpec.InvariantFormatting);
             WriteFormatMethodBodyForKeyParts(writer, "public string ToSortKeyString()", sortKeyParts, keySpec.InvariantFormatting);
+            WriteDynamicFormatMethodBodyForKeyParts(writer, "public string ToSortKeyString(int throughPartIndex, bool includeTrailingDelimiter = true)", sortKeyParts, keySpec.InvariantFormatting);
 
             WriteParseMethodImplementation();
             WriteTryParseMethodImplementation();
@@ -401,7 +404,7 @@ public sealed partial class SourceGenerator
                                            """);
                         break;
 
-                    case PropertyKeyPart { ParseType: ParseType.String } part:
+                    case PropertyKeyPart { ParseType: ParseType.String }:
                         writer.WriteLines($"""
                                            if ({partInputVariable}.Length == 0)
                                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
@@ -570,18 +573,7 @@ public sealed partial class SourceGenerator
             }
             else
             {
-                string formatString = string.Empty;
-                foreach (var keyPart in keyParts)
-                {
-                    formatString += keyPart switch
-                    {
-                        DelimiterKeyPart d => d.Value,
-                        ConstantKeyPart c => c.Value,
-                        PropertyKeyPart p => $"{{{p.Property.Name}{(p.Format is not null ? $":{p.Format}" : string.Empty)}}}",
-                        _ => throw new InvalidOperationException()
-                    };
-                }
-
+                string formatString = BuildFormatStringForKeyParts(keyParts);
                 writer.WriteLine(invariantFormatting
                     ? $"return string.Create({InvariantCulture}, $\"{formatString}\");"
                     : $"return $\"{formatString}\";");
@@ -591,6 +583,54 @@ public sealed partial class SourceGenerator
             writer.WriteLine();
 
             static string GetCharsWritten(PropertySpec p) => $"{p.CamelCaseName}CharsWritten";
+        }
+
+        private static void WriteDynamicFormatMethodBodyForKeyParts(
+            SourceWriter writer, string methodDeclaration, IReadOnlyList<KeyPart> keyParts, bool invariantFormatting)
+        {
+            writer.StartBlock(methodDeclaration);
+
+            writer.StartBlock("return (throughPartIndex, includeTrailingDelimiter) switch");
+
+            for (int i = 0, keyPartIndex = -1; i < keyParts.Count; i++)
+            {
+                var keyPart = keyParts[i];
+
+                bool isDelimiter = keyPart is DelimiterKeyPart;
+                if (!isDelimiter)
+                    keyPartIndex++;
+
+                string switchCase = $"({keyPartIndex}, {(isDelimiter ? "true" : "false")}) =>";
+                string formatString = BuildFormatStringForKeyParts(keyParts.Take(i + 1));
+
+                writer.WriteLine(invariantFormatting
+                    ? $"{switchCase} string.Create({InvariantCulture}, $\"{formatString}\"),"
+                    : $"{switchCase} $\"{formatString}\",");
+            }
+
+            writer.WriteLine("_ => throw new InvalidOperationException(\"Invalid combination of throughPartIndex and includeTrailingDelimiter provided\")");
+
+            writer.EndBlock(withSemicolon: true);
+
+            writer.EndBlock();
+            writer.WriteLine();
+        }
+
+        private static string BuildFormatStringForKeyParts(IEnumerable<KeyPart> keyParts)
+        {
+            var builder = new StringBuilder();
+            foreach (var keyPart in keyParts)
+            {
+                builder.Append(keyPart switch
+                {
+                    DelimiterKeyPart d => d.Value,
+                    ConstantKeyPart c => c.Value,
+                    PropertyKeyPart p => $"{{{p.Property.Name}{(p.Format is not null ? $":{p.Format}" : string.Empty)}}}",
+                    _ => throw new InvalidOperationException()
+                });
+            }
+
+            return builder.ToString();
         }
 
         private void AddSource(string hintName, SourceText sourceText) => _context.AddSource(hintName, sourceText);
@@ -622,7 +662,7 @@ public sealed partial class SourceGenerator
             for (int i = nestedTypeDeclarations.Count - 1; i > 0; i--)
                 writer.StartBlock(nestedTypeDeclarations[i]);
 
-            // Annotate context class with the GeneratedCodeAttribute
+            // Annotate the context class with the GeneratedCodeAttribute
             writer.WriteLine($"""[global::System.CodeDom.Compiler.GeneratedCodeAttribute("{AssemblyName}", "{AssemblyVersion}")]""");
 
             // Emit the main class declaration
