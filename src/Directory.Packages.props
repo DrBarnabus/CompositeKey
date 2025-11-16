@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageVersion Include="JetBrains.Annotations" Version="2025.2.1" />
+        <PackageVersion Include="JetBrains.Annotations" Version="2025.2.2" />
         <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(AnalyzerRoslynVersion)" />
         <PackageVersion Include="PolySharp" Version="1.15.0" />
     </ItemGroup>
@@ -14,25 +14,25 @@
     <!-- Analyzers -->
     <ItemGroup>
         <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="4.14.0" />
-        <PackageVersion Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="3.12.0-beta1.25218.8" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="5.0.0-1.25277.114" />
     </ItemGroup>
 
     <!-- Testing -->
     <ItemGroup>
         <PackageVersion Include="AutoFixture.Xunit2" Version="4.18.1" />
         <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-        <PackageVersion Include="JunitXml.TestLogger" Version="6.1.0" />
+        <PackageVersion Include="JunitXml.TestLogger" Version="7.0.2" />
         <PackageVersion Include="Microsoft.CodeAnalysis" Version="$(AnalyzerRoslynVersion)" />
         <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
         <PackageVersion Include="Shouldly" Version="4.3.0" />
         <PackageVersion Include="xunit" Version="2.9.3" />
-        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     </ItemGroup>
 
     <!-- Global -->
     <ItemGroup>
-        <GlobalPackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25" />
+        <GlobalPackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.39" />
     </ItemGroup>
 
 </Project>
