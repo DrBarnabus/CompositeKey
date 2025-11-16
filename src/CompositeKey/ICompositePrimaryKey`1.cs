@@ -15,6 +15,22 @@ public interface ICompositePrimaryKey<TSelf> : IPrimaryKey<TSelf> where TSelf : 
     string ToSortKeyString();
 
     /// <summary>
+    /// Formats the sort key portion of the current instance to a string through the specified index.
+    /// </summary>
+    /// <param name="throughPartIndex">The zero-based index of the key part to format through (inclusive). This counts only properties and constants, not delimiters.</param>
+    /// <param name="includeTrailingDelimiter">Whether to include the following delimiter character in the formatted string, defaults to true.</param>
+    /// <returns>The sort key portion of the current instance up to the specified index formatted to a string.</returns>
+    /// <example>
+    /// For a key with template <c>"{Country}#{County}#{Locality}"</c> and values "UK", "Derbyshire" and "Matlock":
+    /// <code>
+    /// key.ToSortKeyString(0); // Returns "UK#"
+    /// key.ToSortKeyString(1, false); // Returns "UK#Derbyshire"
+    /// key.ToSortKeyString(1, true); // Returns "UK#Derbyshire#"
+    /// </code>
+    /// </example>
+    string ToSortKeyString(int throughPartIndex, bool includeTrailingDelimiter = true);
+
+    /// <summary>
     /// Parses both partition key and sort key together as strings into a <see cref="TSelf"/> instance.
     /// </summary>
     /// <param name="partitionKey">The partition key string to parse.</param>

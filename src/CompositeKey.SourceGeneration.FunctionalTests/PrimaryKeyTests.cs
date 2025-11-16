@@ -275,5 +275,58 @@ public static class PrimaryKeyTests
         result.ShouldBe($"{primaryKey.GuidValue}#Constant#{primaryKey.EnumValue}@{primaryKey.StringValue}");
     }
 
+    [Theory]
+    [InlineAutoData(0, false)]
+    [InlineAutoData(0, true)]
+    [InlineAutoData(1, false)]
+    [InlineAutoData(1, true)]
+    [InlineAutoData(2, false)]
+    [InlineAutoData(2, true)]
+    [InlineAutoData(3, false)]
+    public static void PrimaryKeyWithFastPathFormatting_ToPartitionKeyString_WithSpecificPartIndexAndDelimiterRequirements_ShouldReturnCorrectlyFormattedString(
+        int throughPartIndex, bool includeTrailingDelimiter, PrimaryKeyWithFastPathFormatting compositeKey)
+    {
+        (var guidValue, var enumValue, string stringValue) = compositeKey;
+
+        string result = compositeKey.ToPartitionKeyString(throughPartIndex, includeTrailingDelimiter);
+
+        result.ShouldNotBeNullOrEmpty();
+
+        switch (throughPartIndex)
+        {
+            case 0 when !includeTrailingDelimiter:
+                result.ShouldBe($"{guidValue}");
+                break;
+            case 0 when includeTrailingDelimiter:
+                result.ShouldBe($"{guidValue}#");
+                break;
+            case 1 when !includeTrailingDelimiter:
+                result.ShouldBe($"{guidValue}#Constant");
+                break;
+            case 1 when includeTrailingDelimiter:
+                result.ShouldBe($"{guidValue}#Constant#");
+                break;
+            case 2 when !includeTrailingDelimiter:
+                result.ShouldBe($"{guidValue}#Constant#{enumValue}");
+                break;
+            case 2 when includeTrailingDelimiter:
+                result.ShouldBe($"{guidValue}#Constant#{enumValue}@");
+                break;
+            case 3:
+                result.ShouldBe($"{guidValue}#Constant#{enumValue}@{stringValue}");
+                break;
+        }
+    }
+
+    [Theory]
+    [InlineAutoData(3, true)]
+    [InlineAutoData(4, false)]
+    public static void PrimaryKeyWithFastPathFormatting_ToPartitionKeyString_WithInvalidPartIndexOrDelimiterRequirements_ShouldThrowInvalidOperationException(
+        int throughPartIndex, bool includeTrailingDelimiter, PrimaryKeyWithFastPathFormatting compositeKey)
+    {
+        var act = () => compositeKey.ToPartitionKeyString(throughPartIndex, includeTrailingDelimiter);
+        act.ShouldThrow<InvalidOperationException>();
+    }
+
     #endregion
 }

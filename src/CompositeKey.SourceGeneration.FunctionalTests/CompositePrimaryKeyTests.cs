@@ -37,6 +37,43 @@ public static class CompositePrimaryKeyTests
         result.ShouldBe($"{guidValue}#{decimalValue}");
     }
 
+    [Theory]
+    [InlineAutoData(0, false)]
+    [InlineAutoData(0, true)]
+    [InlineAutoData(1, false)]
+    public static void CompositePrimaryKey_ToPartitionKeyString_WithSpecificPartIndexAndDelimiterRequirements_ShouldReturnCorrectlyFormattedString(
+            int throughPartIndex, bool includeTrailingDelimiter, CompositePrimaryKey compositeKey)
+    {
+        (var guidValue, decimal decimalValue, _, _) = compositeKey;
+
+        string result = compositeKey.ToPartitionKeyString(throughPartIndex, includeTrailingDelimiter);
+
+        result.ShouldNotBeNullOrEmpty();
+
+        switch (throughPartIndex)
+        {
+            case 0 when !includeTrailingDelimiter:
+                result.ShouldBe($"{guidValue}");
+                break;
+            case 0 when includeTrailingDelimiter:
+                result.ShouldBe($"{guidValue}#");
+                break;
+            case 1:
+                result.ShouldBe($"{guidValue}#{decimalValue}");
+                break;
+        }
+    }
+
+    [Theory]
+    [InlineAutoData(1, true)]
+    [InlineAutoData(2, false)]
+    public static void CompositePrimaryKey_ToPartitionKeyString_WithInvalidPartIndexOrDelimiterRequirements_ShouldThrowInvalidOperationException(
+        int throughPartIndex, bool includeTrailingDelimiter, CompositePrimaryKey compositeKey)
+    {
+        var act = () => compositeKey.ToPartitionKeyString(throughPartIndex, includeTrailingDelimiter);
+        act.ShouldThrow<InvalidOperationException>();
+    }
+
     [Theory, AutoData]
     public static void CompositePrimaryKey_ToSortKeyString_ShouldReturnCorrectlyFormattedString(CompositePrimaryKey compositeKey)
     {
@@ -46,6 +83,51 @@ public static class CompositePrimaryKeyTests
 
         result.ShouldNotBeNullOrEmpty();
         result.ShouldBe($"Constant~{enumValue}@{stringValue}");
+    }
+
+    [Theory]
+    [InlineAutoData(0, false)]
+    [InlineAutoData(0, true)]
+    [InlineAutoData(1, false)]
+    [InlineAutoData(1, true)]
+    [InlineAutoData(2, false)]
+    public static void CompositePrimaryKey_ToSortKeyString_WithSpecificPartIndexAndDelimiterRequirements_ShouldReturnCorrectlyFormattedString(
+        int throughPartIndex, bool includeTrailingDelimiter, CompositePrimaryKey compositeKey)
+    {
+        (_, _, var enumValue, string stringValue) = compositeKey;
+
+        string result = compositeKey.ToSortKeyString(throughPartIndex, includeTrailingDelimiter);
+
+        result.ShouldNotBeNullOrEmpty();
+
+        switch (throughPartIndex)
+        {
+            case 0 when !includeTrailingDelimiter:
+                result.ShouldBe($"Constant");
+                break;
+            case 0 when includeTrailingDelimiter:
+                result.ShouldBe($"Constant~");
+                break;
+            case 1 when !includeTrailingDelimiter:
+                result.ShouldBe($"Constant~{enumValue}");
+                break;
+            case 1 when includeTrailingDelimiter:
+                result.ShouldBe($"Constant~{enumValue}@");
+                break;
+            case 2:
+                result.ShouldBe($"Constant~{enumValue}@{stringValue}");
+                break;
+        }
+    }
+
+    [Theory]
+    [InlineAutoData(2, true)]
+    [InlineAutoData(3, false)]
+    public static void CompositePrimaryKey_ToSortKeyString_WithInvalidPartIndexOrDelimiterRequirements_ShouldThrowInvalidOperationException(
+        int throughPartIndex, bool includeTrailingDelimiter, CompositePrimaryKey compositeKey)
+    {
+        var act = () => compositeKey.ToSortKeyString(throughPartIndex, includeTrailingDelimiter);
+        act.ShouldThrow<InvalidOperationException>();
     }
 
     [Theory, AutoData]
