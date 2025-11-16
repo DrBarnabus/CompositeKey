@@ -208,7 +208,7 @@ public static class PrimaryKeyTests
     [Theory, MemberData(nameof(PrimaryKeyWithConstants_InvalidInputs))]
     public static void PrimaryKeyWithConstants_Parse_WithInvalidKey_ShouldThrowFormatException(string input)
     {
-        var act = () => MixedTypePrimaryKey.Parse(input);
+        var act = () => PrimaryKeyWithConstants.Parse(input);
         act.ShouldThrow<FormatException>();
     }
 
@@ -225,7 +225,7 @@ public static class PrimaryKeyTests
     [Theory, MemberData(nameof(PrimaryKeyWithConstants_InvalidInputs))]
     public static void PrimaryKeyWithConstants_TryParse_WithInvalidKey_ShouldReturnFalse(string input)
     {
-        MixedTypePrimaryKey.TryParse(input, out var result).ShouldBeFalse();
+        PrimaryKeyWithConstants.TryParse(input, out var result).ShouldBeFalse();
 
         result.ShouldBeNull();
     }
