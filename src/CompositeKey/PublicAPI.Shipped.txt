@@ -13,12 +13,14 @@ CompositeKey.ICompositePrimaryKey<TSelf>
 CompositeKey.ICompositePrimaryKey<TSelf>.Parse(System.ReadOnlySpan<char> partitionKey, System.ReadOnlySpan<char> sortKey) -> TSelf
 CompositeKey.ICompositePrimaryKey<TSelf>.Parse(string! partitionKey, string! sortKey) -> TSelf
 CompositeKey.ICompositePrimaryKey<TSelf>.ToSortKeyString() -> string!
+CompositeKey.ICompositePrimaryKey<TSelf>.ToSortKeyString(int throughPartIndex, bool includeTrailingDelimiter = true) -> string!
 CompositeKey.ICompositePrimaryKey<TSelf>.TryParse(System.ReadOnlySpan<char> partitionKey, System.ReadOnlySpan<char> sortKey, out TSelf result) -> bool
 CompositeKey.ICompositePrimaryKey<TSelf>.TryParse(string? partitionKey, string? sortKey, out TSelf result) -> bool
 CompositeKey.IPrimaryKey<TSelf>
 CompositeKey.IPrimaryKey<TSelf>.Parse(System.ReadOnlySpan<char> primaryKey) -> TSelf
 CompositeKey.IPrimaryKey<TSelf>.Parse(string! primaryKey) -> TSelf
 CompositeKey.IPrimaryKey<TSelf>.ToPartitionKeyString() -> string!
+CompositeKey.IPrimaryKey<TSelf>.ToPartitionKeyString(int throughPartIndex, bool includeTrailingDelimiter = true) -> string!
 CompositeKey.IPrimaryKey<TSelf>.ToString() -> string!
 CompositeKey.IPrimaryKey<TSelf>.TryParse(System.ReadOnlySpan<char> primaryKey, out TSelf result) -> bool
 CompositeKey.IPrimaryKey<TSelf>.TryParse(string? primaryKey, out TSelf result) -> bool

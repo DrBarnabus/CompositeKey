@@ -1,3 +1,1 @@
 #nullable enable
-CompositeKey.ICompositePrimaryKey<TSelf>.ToSortKeyString(int throughPartIndex, bool includeTrailingDelimiter = true) -> string!
-CompositeKey.IPrimaryKey<TSelf>.ToPartitionKeyString(int throughPartIndex, bool includeTrailingDelimiter = true) -> string!

@@ -3,6 +3,16 @@
 All notable changes to this project will be automatically documented in this file.
 
 
+## [1.5.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.4.0...v1.5.0) (2025-11-16)
+
+
+### Features
+
+* Add partial key formatting methods ([#33](https://github.com/DrBarnabus/CompositeKey/issues/33)) ([42f9674](https://github.com/DrBarnabus/CompositeKey/commit/42f9674ffe55ce447e636819dae2e15fea5d1286))
+* Add analyzer for real-time IDE feedback ([#29](https://github.com/DrBarnabus/CompositeKey/issues/29)) ([8cddd06](https://github.com/DrBarnabus/CompositeKey/commit/8cddd06babab3c0623ef318d7ae1e4635e6ecf6e))
+* Expand analyzer rules to cover template strings ([#30](https://github.com/DrBarnabus/CompositeKey/issues/30)) ([3c94496](https://github.com/DrBarnabus/CompositeKey/commit/3c94496b7b75ebbdcc0581d3cd58071615b19bb7))
+* Expand analyzer rules to cover property constraints ([#31](https://github.com/DrBarnabus/CompositeKey/issues/31)) ([3f5a44c](https://github.com/DrBarnabus/CompositeKey/commit/3f5a44c946739a94f4d6d26cf6b9b63601789347))
+
 ## [1.4.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.3.1...v1.4.0) (2025-07-04)
 
 
