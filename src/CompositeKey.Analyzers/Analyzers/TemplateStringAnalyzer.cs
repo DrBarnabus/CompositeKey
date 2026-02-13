@@ -20,7 +20,8 @@ public sealed class TemplateStringAnalyzer : CompositeKeyAnalyzerBase
     /// </summary>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(
         DiagnosticDescriptors.EmptyOrInvalidTemplateString,
-        DiagnosticDescriptors.PrimaryKeySeparatorMissingFromTemplateString);
+        DiagnosticDescriptors.PrimaryKeySeparatorMissingFromTemplateString,
+        DiagnosticDescriptors.RepeatingPropertyMustBeLastPart);
 
     /// <summary>
     /// Analyzes a CompositeKey-annotated type for template string requirements.
@@ -83,7 +84,23 @@ public sealed class TemplateStringAnalyzer : CompositeKeyAnalyzerBase
             if (!TemplateValidation.ValidatePartitionAndSortKeyStructure(tokenizationResult.Tokens, out _))
             {
                 ReportEmptyOrInvalidTemplate(context, typeDeclaration, templateString);
+                return;
             }
+        }
+
+        // Validate repeating property count (at most one per key section)
+        var repeatingCountValidation = TemplateValidation.ValidateRepeatingPropertyCount(tokenizationResult.Tokens);
+        if (!repeatingCountValidation.IsSuccess)
+        {
+            ReportTemplateValidationError(context, typeDeclaration, repeatingCountValidation, templateString);
+            return;
+        }
+
+        // Validate repeating property position (must be last value part in section)
+        var repeatingPositionValidation = TemplateValidation.ValidateRepeatingPropertyPosition(tokenizationResult.Tokens);
+        if (!repeatingPositionValidation.IsSuccess)
+        {
+            ReportTemplateValidationError(context, typeDeclaration, repeatingPositionValidation, templateString);
         }
     }
 

@@ -21,7 +21,9 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
     /// </summary>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(
         DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter,
-        DiagnosticDescriptors.PropertyHasInvalidOrUnsupportedFormat);
+        DiagnosticDescriptors.PropertyHasInvalidOrUnsupportedFormat,
+        DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType,
+        DiagnosticDescriptors.CollectionPropertyMustUseRepeatingSyntax);
 
     /// <summary>
     /// Analyzes properties referenced in a CompositeKey template string.
@@ -54,58 +56,145 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
 
         foreach (var token in tokenizationResult.Tokens)
         {
-            if (token is not PropertyTemplateToken propertyToken)
-                continue;
-
-            var property = properties.FirstOrDefault(p => p.Name == propertyToken.Name);
-            if (property is null)
-                continue; // Property not found is handled by template validation
-
-            var accessibilityInfo = new PropertyValidation.PropertyAccessibilityInfo(
-                Name: property.Name,
-                HasGetter: property.GetMethod is not null,
-                HasSetter: property.SetMethod is not null);
-
-            var accessibilityResult = PropertyValidation.ValidatePropertyAccessibility(accessibilityInfo);
-            if (!accessibilityResult.IsSuccess)
+            if (token is PropertyTemplateToken propertyToken)
             {
-                ReportPropertyDiagnostic(
-                    context,
-                    typeDeclaration,
-                    property,
-                    accessibilityResult);
-            }
+                var property = properties.FirstOrDefault(p => p.Name == propertyToken.Name);
+                if (property is null)
+                    continue; // Property not found is handled by template validation
 
-            var typeInfo = CreatePropertyTypeInfo(property, context.Compilation);
+                var accessibilityInfo = new PropertyValidation.PropertyAccessibilityInfo(
+                    Name: property.Name,
+                    HasGetter: property.GetMethod is not null,
+                    HasSetter: property.SetMethod is not null);
 
-            if (!string.IsNullOrEmpty(propertyToken.Format))
-            {
-                var formatResult = PropertyValidation.ValidatePropertyFormat(
-                    property.Name,
-                    typeInfo,
-                    propertyToken.Format);
-
-                if (!formatResult.IsSuccess)
+                var accessibilityResult = PropertyValidation.ValidatePropertyAccessibility(accessibilityInfo);
+                if (!accessibilityResult.IsSuccess)
                 {
                     ReportPropertyDiagnostic(
                         context,
                         typeDeclaration,
                         property,
-                        formatResult);
+                        accessibilityResult);
+                }
+
+                // Check if a regular property is a collection type (should use repeating syntax)
+                var collectionTypeInfo = CreateCollectionPropertyTypeInfo(property, context.Compilation);
+                var nonCollectionResult = PropertyValidation.ValidateNonCollectionPropertyType(
+                    property.Name,
+                    collectionTypeInfo);
+
+                if (!nonCollectionResult.IsSuccess)
+                {
+                    ReportPropertyDiagnostic(
+                        context,
+                        typeDeclaration,
+                        property,
+                        nonCollectionResult);
+                }
+
+                var typeInfo = CreatePropertyTypeInfo(property, context.Compilation);
+
+                if (!string.IsNullOrEmpty(propertyToken.Format))
+                {
+                    var formatResult = PropertyValidation.ValidatePropertyFormat(
+                        property.Name,
+                        typeInfo,
+                        propertyToken.Format);
+
+                    if (!formatResult.IsSuccess)
+                    {
+                        ReportPropertyDiagnostic(
+                            context,
+                            typeDeclaration,
+                            property,
+                            formatResult);
+                    }
+                }
+
+                var typeCompatibilityResult = PropertyValidation.ValidatePropertyTypeCompatibility(
+                    property.Name,
+                    typeInfo);
+
+                if (!typeCompatibilityResult.IsSuccess)
+                {
+                    ReportPropertyDiagnostic(
+                        context,
+                        typeDeclaration,
+                        property,
+                        typeCompatibilityResult);
                 }
             }
-
-            var typeCompatibilityResult = PropertyValidation.ValidatePropertyTypeCompatibility(
-                property.Name,
-                typeInfo);
-
-            if (!typeCompatibilityResult.IsSuccess)
+            else if (token is RepeatingPropertyTemplateToken repeatingToken)
             {
-                ReportPropertyDiagnostic(
-                    context,
-                    typeDeclaration,
-                    property,
-                    typeCompatibilityResult);
+                var property = properties.FirstOrDefault(p => p.Name == repeatingToken.Name);
+                if (property is null)
+                    continue; // Property not found is handled by template validation
+
+                var accessibilityInfo = new PropertyValidation.PropertyAccessibilityInfo(
+                    Name: property.Name,
+                    HasGetter: property.GetMethod is not null,
+                    HasSetter: property.SetMethod is not null);
+
+                var accessibilityResult = PropertyValidation.ValidatePropertyAccessibility(accessibilityInfo);
+                if (!accessibilityResult.IsSuccess)
+                {
+                    ReportPropertyDiagnostic(
+                        context,
+                        typeDeclaration,
+                        property,
+                        accessibilityResult);
+                }
+
+                // Check if the property is a valid collection type
+                var collectionTypeInfo = CreateCollectionPropertyTypeInfo(property, context.Compilation);
+                var collectionResult = PropertyValidation.ValidateCollectionPropertyType(
+                    property.Name,
+                    collectionTypeInfo);
+
+                if (!collectionResult.IsSuccess)
+                {
+                    ReportPropertyDiagnostic(
+                        context,
+                        typeDeclaration,
+                        property,
+                        collectionResult);
+                    continue;
+                }
+
+                // Validate format/type compatibility for the inner type T
+                var innerTypeInfo = CreateInnerTypeInfo(property, context.Compilation);
+                if (innerTypeInfo is null)
+                    continue;
+
+                if (!string.IsNullOrEmpty(repeatingToken.Format))
+                {
+                    var formatResult = PropertyValidation.ValidatePropertyFormat(
+                        property.Name,
+                        innerTypeInfo,
+                        repeatingToken.Format);
+
+                    if (!formatResult.IsSuccess)
+                    {
+                        ReportPropertyDiagnostic(
+                            context,
+                            typeDeclaration,
+                            property,
+                            formatResult);
+                    }
+                }
+
+                var typeCompatibilityResult = PropertyValidation.ValidatePropertyTypeCompatibility(
+                    property.Name,
+                    innerTypeInfo);
+
+                if (!typeCompatibilityResult.IsSuccess)
+                {
+                    ReportPropertyDiagnostic(
+                        context,
+                        typeDeclaration,
+                        property,
+                        typeCompatibilityResult);
+                }
             }
         }
     }
@@ -147,6 +236,69 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
             .OfType<IPropertySymbol>()
             .Where(p => !p.IsStatic && !p.IsImplicitlyDeclared)
             .ToImmutableArray();
+    }
+
+    /// <summary>
+    /// Creates CollectionPropertyTypeInfo from a property symbol for collection type detection.
+    /// </summary>
+    private static PropertyValidation.CollectionPropertyTypeInfo CreateCollectionPropertyTypeInfo(
+        IPropertySymbol property,
+        Compilation compilation)
+    {
+        var propertyType = property.Type;
+
+        if (propertyType is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        {
+            return new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: propertyType.ToDisplayString(),
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+        }
+
+        var originalDefinition = namedType.OriginalDefinition;
+
+        var listType = compilation.GetTypeByMetadataName("System.Collections.Generic.List`1");
+        var readOnlyListType = compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyList`1");
+        var immutableArrayType = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray`1");
+
+        return new PropertyValidation.CollectionPropertyTypeInfo(
+            TypeName: propertyType.ToDisplayString(),
+            IsList: listType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, listType),
+            IsReadOnlyList: readOnlyListType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, readOnlyListType),
+            IsImmutableArray: immutableArrayType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, immutableArrayType));
+    }
+
+    /// <summary>
+    /// Creates PropertyTypeInfo for the inner type T of a collection property.
+    /// </summary>
+    private static PropertyValidation.PropertyTypeInfo? CreateInnerTypeInfo(
+        IPropertySymbol property,
+        Compilation compilation)
+    {
+        if (property.Type is not INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: > 0 } namedType)
+            return null;
+
+        var innerType = namedType.TypeArguments[0];
+
+        var guidType = compilation.GetTypeByMetadataName("System.Guid");
+        var stringType = compilation.GetSpecialType(SpecialType.System_String);
+
+        var isGuid = SymbolEqualityComparer.Default.Equals(innerType, guidType);
+        var isString = SymbolEqualityComparer.Default.Equals(innerType, stringType);
+        var isEnum = innerType.TypeKind == TypeKind.Enum;
+
+        var interfaces = innerType.AllInterfaces;
+        var isSpanParsable = interfaces.Any(i => i.ToDisplayString().StartsWith("System.ISpanParsable", StringComparison.Ordinal));
+        var isSpanFormattable = interfaces.Any(i => i.ToDisplayString().Equals("System.ISpanFormattable", StringComparison.Ordinal));
+
+        return new PropertyValidation.PropertyTypeInfo(
+            TypeName: innerType.ToDisplayString(),
+            IsGuid: isGuid,
+            IsString: isString,
+            IsEnum: isEnum,
+            IsSpanParsable: isSpanParsable,
+            IsSpanFormattable: isSpanFormattable);
     }
 
     /// <summary>

@@ -413,6 +413,139 @@ public static class PropertyValidationTests
         }
     }
 
+    public class CollectionPropertyTypeValidation
+    {
+        [Fact]
+        public void ListType_IsCollection()
+        {
+            // Arrange
+            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: "System.Collections.Generic.List<System.Guid>",
+                IsList: true,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Assert
+            collectionTypeInfo.IsCollection.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void ReadOnlyListType_IsCollection()
+        {
+            // Arrange
+            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: "System.Collections.Generic.IReadOnlyList<string>",
+                IsList: false,
+                IsReadOnlyList: true,
+                IsImmutableArray: false);
+
+            // Assert
+            collectionTypeInfo.IsCollection.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void ImmutableArrayType_IsCollection()
+        {
+            // Arrange
+            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: "System.Collections.Immutable.ImmutableArray<int>",
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: true);
+
+            // Assert
+            collectionTypeInfo.IsCollection.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void NonCollectionType_IsNotCollection()
+        {
+            // Arrange
+            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: "System.String",
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Assert
+            collectionTypeInfo.IsCollection.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithCollectionType_ShouldReturnSuccess()
+        {
+            // Arrange
+            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: "System.Collections.Generic.List<System.Guid>",
+                IsList: true,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Act
+            var result = PropertyValidation.ValidateCollectionPropertyType("Tags", collectionTypeInfo);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithNonCollectionType_ShouldReturnFailure()
+        {
+            // Arrange
+            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: "System.String",
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Act
+            var result = PropertyValidation.ValidateCollectionPropertyType("Name", collectionTypeInfo);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Name");
+        }
+
+        [Fact]
+        public void NonRepeatingPropertyWithCollectionType_ShouldReturnFailure()
+        {
+            // Arrange
+            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: "System.Collections.Generic.List<System.Guid>",
+                IsList: true,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Act
+            var result = PropertyValidation.ValidateNonCollectionPropertyType("Tags", collectionTypeInfo);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.CollectionPropertyMustUseRepeatingSyntax);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Tags");
+        }
+
+        [Fact]
+        public void NonRepeatingPropertyWithNonCollectionType_ShouldReturnSuccess()
+        {
+            // Arrange
+            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+                TypeName: "System.String",
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Act
+            var result = PropertyValidation.ValidateNonCollectionPropertyType("Name", collectionTypeInfo);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+    }
+
     public class FormattedLengthCalculation
     {
         [Theory]

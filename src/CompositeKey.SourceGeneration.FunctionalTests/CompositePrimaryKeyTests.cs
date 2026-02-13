@@ -322,4 +322,197 @@ public static class CompositePrimaryKeyTests
     ];
 
     #endregion
+
+    #region CompositeWithRepeatingSort
+
+    [Fact]
+    public static void CompositeWithRepeatingSort_RoundTripToStringAndParse_ShouldResultInEquivalentKey()
+    {
+        var compositeKey = new CompositeWithRepeatingSort(Guid.NewGuid(), [Guid.NewGuid(), Guid.NewGuid()]);
+
+        var result = CompositeWithRepeatingSort.Parse(compositeKey.ToString());
+
+        result.ShouldNotBeNull();
+        result.TenantId.ShouldBe(compositeKey.TenantId);
+        result.LocationId.ShouldBe(compositeKey.LocationId);
+    }
+
+    [Fact]
+    public static void CompositeWithRepeatingSort_ToString_ShouldReturnCorrectlyFormattedString()
+    {
+        var tenantId = Guid.NewGuid();
+        var ids = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
+        var compositeKey = new CompositeWithRepeatingSort(tenantId, ids);
+
+        string result = compositeKey.ToString();
+
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"{tenantId}|LOCATION#{ids[0]}#{ids[1]}");
+    }
+
+    [Fact]
+    public static void CompositeWithRepeatingSort_ToPartitionKeyString_ShouldReturnCorrectlyFormattedString()
+    {
+        var tenantId = Guid.NewGuid();
+        var compositeKey = new CompositeWithRepeatingSort(tenantId, [Guid.NewGuid()]);
+
+        string result = compositeKey.ToPartitionKeyString();
+
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"{tenantId}");
+    }
+
+    [Fact]
+    public static void CompositeWithRepeatingSort_ToSortKeyString_ShouldReturnCorrectlyFormattedString()
+    {
+        var ids = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
+        var compositeKey = new CompositeWithRepeatingSort(Guid.NewGuid(), ids);
+
+        string result = compositeKey.ToSortKeyString();
+
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"LOCATION#{ids[0]}#{ids[1]}");
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    public static void CompositeWithRepeatingSort_ToSortKeyString_WithSpecificPartIndex_ShouldReturnCorrectlyFormattedString(
+        int throughPartIndex, bool includeTrailingDelimiter)
+    {
+        var ids = new List<Guid> { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+        var compositeKey = new CompositeWithRepeatingSort(Guid.NewGuid(), ids);
+
+        string result = compositeKey.ToSortKeyString(throughPartIndex, includeTrailingDelimiter);
+
+        result.ShouldNotBeNullOrEmpty();
+
+        string expected = throughPartIndex switch
+        {
+            0 when !includeTrailingDelimiter => "LOCATION",
+            0 when includeTrailingDelimiter => "LOCATION#",
+            1 when !includeTrailingDelimiter => $"LOCATION#{ids[0]}",
+            1 when includeTrailingDelimiter => $"LOCATION#{ids[0]}#",
+            2 => $"LOCATION#{ids[0]}#{ids[1]}",
+            _ => throw new InvalidOperationException()
+        };
+
+        result.ShouldBe(expected);
+    }
+
+    [Fact]
+    public static void CompositeWithRepeatingSort_Parse_WithValidPrimaryKey_ShouldReturnCorrectlyParsedRecord()
+    {
+        var tenantId = Guid.NewGuid();
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+
+        var result = CompositeWithRepeatingSort.Parse($"{tenantId}|LOCATION#{id1}#{id2}");
+
+        result.ShouldNotBeNull();
+        result.TenantId.ShouldBe(tenantId);
+        result.LocationId.Count.ShouldBe(2);
+        result.LocationId[0].ShouldBe(id1);
+        result.LocationId[1].ShouldBe(id2);
+    }
+
+    [Theory, MemberData(nameof(CompositeWithRepeatingSort_InvalidPrimaryKeys))]
+    public static void CompositeWithRepeatingSort_Parse_WithInvalidPrimaryKey_ShouldThrowFormatException(string primaryKey)
+    {
+        var act = () => CompositeWithRepeatingSort.Parse(primaryKey);
+        act.ShouldThrow<FormatException>();
+    }
+
+    [Fact]
+    public static void CompositeWithRepeatingSort_Parse_WithValidPartitionKeyAndSortKey_ShouldReturnCorrectlyParsedRecord()
+    {
+        var tenantId = Guid.NewGuid();
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+
+        var result = CompositeWithRepeatingSort.Parse($"{tenantId}", $"LOCATION#{id1}#{id2}");
+
+        result.ShouldNotBeNull();
+        result.TenantId.ShouldBe(tenantId);
+        result.LocationId.Count.ShouldBe(2);
+        result.LocationId[0].ShouldBe(id1);
+        result.LocationId[1].ShouldBe(id2);
+    }
+
+    [Theory, MemberData(nameof(CompositeWithRepeatingSort_InvalidPartitionKeyAndSortKeys))]
+    public static void CompositeWithRepeatingSort_Parse_WithInvalidPartitionKeyAndSortKey_ShouldThrowFormatException(string partitionKey, string sortKey)
+    {
+        var act = () => CompositeWithRepeatingSort.Parse(partitionKey, sortKey);
+        act.ShouldThrow<FormatException>();
+    }
+
+    [Fact]
+    public static void CompositeWithRepeatingSort_TryParse_WithValidPrimaryKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord()
+    {
+        var tenantId = Guid.NewGuid();
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+
+        CompositeWithRepeatingSort.TryParse($"{tenantId}|LOCATION#{id1}#{id2}", out var result).ShouldBeTrue();
+
+        result.ShouldNotBeNull();
+        result.TenantId.ShouldBe(tenantId);
+        result.LocationId.Count.ShouldBe(2);
+        result.LocationId[0].ShouldBe(id1);
+        result.LocationId[1].ShouldBe(id2);
+    }
+
+    [Theory, MemberData(nameof(CompositeWithRepeatingSort_InvalidPrimaryKeys))]
+    public static void CompositeWithRepeatingSort_TryParse_WithInvalidPrimaryKey_ShouldReturnFalse(string primaryKey)
+    {
+        CompositeWithRepeatingSort.TryParse(primaryKey, out var result).ShouldBeFalse();
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public static void CompositeWithRepeatingSort_TryParse_WithValidPartitionKeyAndSortKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord()
+    {
+        var tenantId = Guid.NewGuid();
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+
+        CompositeWithRepeatingSort.TryParse($"{tenantId}", $"LOCATION#{id1}#{id2}", out var result).ShouldBeTrue();
+
+        result.ShouldNotBeNull();
+        result.TenantId.ShouldBe(tenantId);
+        result.LocationId.Count.ShouldBe(2);
+        result.LocationId[0].ShouldBe(id1);
+        result.LocationId[1].ShouldBe(id2);
+    }
+
+    [Theory, MemberData(nameof(CompositeWithRepeatingSort_InvalidPartitionKeyAndSortKeys))]
+    public static void CompositeWithRepeatingSort_TryParse_WithInvalidPartitionKeyAndSortKey_ShouldReturnFalse(string partitionKey, string sortKey)
+    {
+        CompositeWithRepeatingSort.TryParse(partitionKey, sortKey, out var result).ShouldBeFalse();
+
+        result.ShouldBeNull();
+    }
+
+    public static object[][] CompositeWithRepeatingSort_InvalidPrimaryKeys() =>
+    [
+        [""],
+        ["a"],
+        ["a|b"],
+        ["not-a-guid|LOCATION#not-a-guid"],
+        ["eccd98c4-d484-4429-896d-8fcdd77c6327|WRONG#eccd98c4-d484-4429-896d-8fcdd77c6328"]
+    ];
+
+    public static object[][] CompositeWithRepeatingSort_InvalidPartitionKeyAndSortKeys() =>
+    [
+        ["a", "b"],
+        ["not-a-guid", "LOCATION#not-a-guid"],
+        ["eccd98c4-d484-4429-896d-8fcdd77c6327", "WRONG#eccd98c4-d484-4429-896d-8fcdd77c6328"],
+        ["eccd98c4-d484-4429-896d-8fcdd77c6327", "LOCATION#not-a-guid"]
+    ];
+
+    #endregion
 }

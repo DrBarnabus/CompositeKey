@@ -8,4 +8,5 @@ public sealed record PropertySpec(
     bool HasGetter,
     bool HasSetter,
     bool IsInitOnlySetter,
-    EnumSpec? EnumSpec);
+    EnumSpec? EnumSpec,
+    CollectionType CollectionType = CollectionType.None);

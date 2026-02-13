@@ -327,6 +327,35 @@ public static class CompilationHelper
         public partial record KeyWithSamePropertyUsedTwice(Guid Id);
         """);
 
+    public static Compilation CreateCompilationWithRepeatingPropertyKey() => CreateCompilation("""
+        using System;
+        using System.Collections.Generic;
+        using CompositeKey;
+
+        namespace UnitTests;
+
+        [CompositeKey("TAG_{Tags...#}")]
+        public partial record TagKey
+        {
+            public List<string> Tags { get; set; } = [];
+        }
+        """);
+
+    public static Compilation CreateCompilationWithRepeatingPropertyCompositeKey() => CreateCompilation("""
+        using System;
+        using System.Collections.Generic;
+        using CompositeKey;
+
+        namespace UnitTests;
+
+        [CompositeKey("{UserId}|TAG_{Tags...#}", PrimaryKeySeparator = '|')]
+        public partial record UserTagKey
+        {
+            public Guid UserId { get; set; }
+            public List<string> Tags { get; set; } = [];
+        }
+        """);
+
     public record struct DiagnosticData(DiagnosticSeverity Severity, string FilePath, LinePositionSpan LinePositionSpan, string Message)
     {
         public DiagnosticData(DiagnosticSeverity severity, Location location, string message)

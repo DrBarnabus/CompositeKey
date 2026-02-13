@@ -98,4 +98,37 @@ public static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    /// <summary>
+    /// COMPOSITE0009: Repeating property must use a collection type.
+    /// </summary>
+    public static DiagnosticDescriptor RepeatingPropertyMustUseCollectionType { get; } = new(
+        id: "COMPOSITE0009",
+        title: Strings.RepeatingPropertyMustUseCollectionTypeTitle,
+        messageFormat: Strings.RepeatingPropertyMustUseCollectionTypeMessageFormat,
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <summary>
+    /// COMPOSITE0010: Collection property must use repeating syntax.
+    /// </summary>
+    public static DiagnosticDescriptor CollectionPropertyMustUseRepeatingSyntax { get; } = new(
+        id: "COMPOSITE0010",
+        title: Strings.CollectionPropertyMustUseRepeatingSyntaxTitle,
+        messageFormat: Strings.CollectionPropertyMustUseRepeatingSyntaxMessageFormat,
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <summary>
+    /// COMPOSITE0011: Repeating property must be the last part in its key section.
+    /// </summary>
+    public static DiagnosticDescriptor RepeatingPropertyMustBeLastPart { get; } = new(
+        id: "COMPOSITE0011",
+        title: Strings.RepeatingPropertyMustBeLastPartTitle,
+        messageFormat: Strings.RepeatingPropertyMustBeLastPartMessageFormat,
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

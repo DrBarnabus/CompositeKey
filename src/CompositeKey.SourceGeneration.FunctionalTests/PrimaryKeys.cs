@@ -1,4 +1,6 @@
-﻿namespace CompositeKey.SourceGeneration.FunctionalTests;
+﻿using System.Collections.Immutable;
+
+namespace CompositeKey.SourceGeneration.FunctionalTests;
 
 [CompositeKey("{First}#{Second}")]
 public sealed partial record GuidOnlyPrimaryKey(Guid First, Guid Second);
@@ -23,3 +25,15 @@ public sealed partial record PrimaryKeyWithFastPathFormatting(Guid GuidValue, Pr
 {
     public enum EnumType { One, Two, Three, Four, Five, Six, Seven, Eight, Nine };
 }
+
+[CompositeKey("{LocationId...#}")]
+public sealed partial record RepeatingGuidPrimaryKey(IReadOnlyList<Guid> LocationId);
+
+[CompositeKey("LOCATION#{LocationId...#}")]
+public sealed partial record HierarchicalLocationKey(IReadOnlyList<Guid> LocationId);
+
+[CompositeKey("{Type}#{Tags...,}")]
+public sealed partial record TaggedEntityKey(string Type, List<string> Tags);
+
+[CompositeKey("{TenantId}#{LocationId:D...#}")]
+public sealed partial record FastPathRepeatingKey(Guid TenantId, IReadOnlyList<Guid> LocationId);

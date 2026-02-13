@@ -76,13 +76,14 @@ public sealed partial class SourceGenerator
                 WriteLengthCheck(writer, keyParts, "primaryKey", true);
 
                 Func<int, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
+                string? primaryKeyPartCountVariable = null;
                 if (keyParts.Count > 1)
                 {
-                    WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, true);
+                    WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, true, out primaryKeyPartCountVariable);
                     getPrimaryKeyPartInputVariable = i => $"primaryKey[{primaryKeyPartRangesVariable}[{i}]]";
                 }
 
-                WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, true);
+                WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, true, primaryKeyPartCountVariable);
 
                 writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
 
@@ -114,13 +115,14 @@ public sealed partial class SourceGenerator
                 WriteLengthCheck(writer, keyParts, "primaryKey", false);
 
                 Func<int, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
+                string? primaryKeyPartCountVariable = null;
                 if (keyParts.Count > 1)
                 {
-                    WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, false);
+                    WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, false, out primaryKeyPartCountVariable);
                     getPrimaryKeyPartInputVariable = i => $"primaryKey[{primaryKeyPartRangesVariable}[{i}]]";
                 }
 
-                WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, false);
+                WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, false, primaryKeyPartCountVariable);
 
                 writer.WriteLines($"""
                                    result = {WriteConstructor(targetTypeSpec)};
@@ -233,22 +235,24 @@ public sealed partial class SourceGenerator
                 WriteLengthCheck(writer, sortKeyParts, "sortKey", true);
 
                 Func<int, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
+                string? partitionKeyPartCountVariable = null;
                 if (partitionKeyParts.Count > 1)
                 {
-                    WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, true);
+                    WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, true, out partitionKeyPartCountVariable);
                     getPartitionKeyPartInputVariable = i => $"partitionKey[{partitionKeyPartRangesVariable}[{i}]]";
                 }
 
                 Func<int, string> getSortKeyPartInputVariable = static _ => "sortKey";
+                string? sortKeyPartCountVariable = null;
                 if (sortKeyParts.Count > 1)
                 {
-                    WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, true);
+                    WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, true, out sortKeyPartCountVariable);
                     getSortKeyPartInputVariable = i => $"sortKey[{sortKeyPartRangesVariable}[{i}]]";
                 }
 
                 var propertyNameCounts = partitionKeyParts.Concat(sortKeyParts).OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
-                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, true, propertyNameCounts);
-                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, true, propertyNameCounts);
+                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, true, propertyNameCounts, partitionKeyPartCountVariable);
+                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, true, propertyNameCounts, sortKeyPartCountVariable);
 
                 writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
 
@@ -281,22 +285,24 @@ public sealed partial class SourceGenerator
                 WriteLengthCheck(writer, sortKeyParts, "sortKey", false);
 
                 Func<int, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
+                string? partitionKeyPartCountVariable = null;
                 if (partitionKeyParts.Count > 1)
                 {
-                    WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, false);
+                    WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, false, out partitionKeyPartCountVariable);
                     getPartitionKeyPartInputVariable = i => $"partitionKey[{partitionKeyPartRangesVariable}[{i}]]";
                 }
 
                 Func<int, string> getSortKeyPartInputVariable = static _ => "sortKey";
+                string? sortKeyPartCountVariable = null;
                 if (sortKeyParts.Count > 1)
                 {
-                    WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, false);
+                    WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, false, out sortKeyPartCountVariable);
                     getSortKeyPartInputVariable = i => $"sortKey[{sortKeyPartRangesVariable}[{i}]]";
                 }
 
                 var propertyNameCounts = partitionKeyParts.Concat(sortKeyParts).OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
-                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, false, propertyNameCounts);
-                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, false, propertyNameCounts);
+                WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, false, propertyNameCounts, partitionKeyPartCountVariable);
+                WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, false, propertyNameCounts, sortKeyPartCountVariable);
 
                 writer.WriteLines($"""
                                    result = {WriteConstructor(targetTypeSpec)};
@@ -340,39 +346,97 @@ public sealed partial class SourceGenerator
                                """);
         }
 
-        private static void WriteSplitImplementation(SourceWriter writer, List<KeyPart> parts, string inputName, out string partRangesVariableName, bool shouldThrow)
+        private static void WriteSplitImplementation(SourceWriter writer, List<KeyPart> parts, string inputName, out string partRangesVariableName, bool shouldThrow, out string? partCountVariableName)
         {
+            var repeatingPart = parts.OfType<RepeatingPropertyKeyPart>().FirstOrDefault();
             var uniqueDelimiters = parts.OfType<DelimiterKeyPart>().Select(d => d.Value).Distinct().ToList();
-            int expectedParts = parts.OfType<ValueKeyPart>().Count();
 
-            (string method, string delimiters) = uniqueDelimiters switch
-            {
-                { Count: 1 } => ("Split", $"'{uniqueDelimiters[0]}'"),
-                { Count: > 1 } => ("SplitAny", $"\"{string.Join(string.Empty, uniqueDelimiters)}\""),
-                _ => throw new InvalidOperationException()
-            };
-
-            string expectedPartsVariableName = $"expected{inputName.FirstToUpperInvariant()}Parts";
             partRangesVariableName = $"{inputName}PartRanges";
+            partCountVariableName = null;
 
-            writer.WriteLines($"""
-                               const int {expectedPartsVariableName} = {expectedParts};
-                               Span<Range> {partRangesVariableName} = stackalloc Range[{expectedPartsVariableName} + 1];
-                               if ({inputName}.{method}({partRangesVariableName}, {delimiters}, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) != {expectedPartsVariableName})
-                                   {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+            if (repeatingPart is not null)
+            {
+                bool sameSeparator = uniqueDelimiters.Contains(repeatingPart.Separator);
 
-                               """);
+                if (sameSeparator)
+                {
+                    // Same separator as key delimiters: split produces variable number of parts
+                    int fixedValueParts = parts.OfType<ValueKeyPart>().Count(p => p is not RepeatingPropertyKeyPart);
+
+                    (string method, string delimiters) = uniqueDelimiters switch
+                    {
+                        { Count: 1 } => ("Split", $"'{uniqueDelimiters[0]}'"),
+                        { Count: > 1 } => ("SplitAny", $"\"{string.Join(string.Empty, uniqueDelimiters)}\""),
+                        _ => throw new InvalidOperationException()
+                    };
+
+                    string minPartsVariable = $"minExpected{inputName.FirstToUpperInvariant()}Parts";
+                    partCountVariableName = $"{inputName}PartCount";
+
+                    writer.WriteLines($"""
+                                       const int {minPartsVariable} = {fixedValueParts + 1};
+                                       Span<Range> {partRangesVariableName} = stackalloc Range[128];
+                                       int {partCountVariableName} = {inputName}.{method}({partRangesVariableName}, {delimiters}, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                       if ({partCountVariableName} < {minPartsVariable})
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+
+                                       """);
+                }
+                else
+                {
+                    // Different separator: split by fixed delimiters, last part contains the repeating section
+                    int expectedParts = parts.OfType<ValueKeyPart>().Count();
+
+                    (string method, string delimiters) = uniqueDelimiters switch
+                    {
+                        { Count: 1 } => ("Split", $"'{uniqueDelimiters[0]}'"),
+                        { Count: > 1 } => ("SplitAny", $"\"{string.Join(string.Empty, uniqueDelimiters)}\""),
+                        _ => throw new InvalidOperationException()
+                    };
+
+                    string expectedPartsVariableName = $"expected{inputName.FirstToUpperInvariant()}Parts";
+
+                    writer.WriteLines($"""
+                                       const int {expectedPartsVariableName} = {expectedParts};
+                                       Span<Range> {partRangesVariableName} = stackalloc Range[{expectedPartsVariableName} + 1];
+                                       if ({inputName}.{method}({partRangesVariableName}, {delimiters}, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) != {expectedPartsVariableName})
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+
+                                       """);
+                }
+            }
+            else
+            {
+                int expectedParts = parts.OfType<ValueKeyPart>().Count();
+
+                (string method, string delimiters) = uniqueDelimiters switch
+                {
+                    { Count: 1 } => ("Split", $"'{uniqueDelimiters[0]}'"),
+                    { Count: > 1 } => ("SplitAny", $"\"{string.Join(string.Empty, uniqueDelimiters)}\""),
+                    _ => throw new InvalidOperationException()
+                };
+
+                string expectedPartsVariableName = $"expected{inputName.FirstToUpperInvariant()}Parts";
+
+                writer.WriteLines($"""
+                                   const int {expectedPartsVariableName} = {expectedParts};
+                                   Span<Range> {partRangesVariableName} = stackalloc Range[{expectedPartsVariableName} + 1];
+                                   if ({inputName}.{method}({partRangesVariableName}, {delimiters}, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) != {expectedPartsVariableName})
+                                       {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+
+                                   """);
+            }
         }
 
         private static void WriteParsePropertiesImplementation(
-            SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow)
+            SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow, string? inputPartCountVariable = null)
         {
             var propertyNameCounts = parts.OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
-            WriteParsePropertiesImplementation(writer, parts, getPartInputVariable, shouldThrow, propertyNameCounts);
+            WriteParsePropertiesImplementation(writer, parts, getPartInputVariable, shouldThrow, propertyNameCounts, inputPartCountVariable);
         }
 
         private static void WriteParsePropertiesImplementation(
-            SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow, Dictionary<string, int> propertyNameCounts)
+            SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow, Dictionary<string, int> propertyNameCounts, string? inputPartCountVariable = null)
         {
             var valueParts = parts.OfType<ValueKeyPart>().ToArray();
             for (int i = 0; i < valueParts.Length; i++)
@@ -387,6 +451,12 @@ public sealed partial class SourceGenerator
                                            {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
                                        """);
+                    continue;
+                }
+
+                if (valueKeyPart is RepeatingPropertyKeyPart repeatingPart)
+                {
+                    WriteRepeatingPropertyParse(writer, parts, repeatingPart, i, getPartInputVariable, shouldThrow, inputPartCountVariable);
                     continue;
                 }
 
@@ -458,6 +528,129 @@ public sealed partial class SourceGenerator
                 part.ExactLengthRequirement ? $"{input}.Length != {part.LengthRequired} || " : string.Empty;
         }
 
+        private static void WriteRepeatingPropertyParse(
+            SourceWriter writer,
+            List<KeyPart> parts,
+            RepeatingPropertyKeyPart repeatingPart,
+            int valuePartIndex,
+            Func<int, string> getPartInputVariable,
+            bool shouldThrow,
+            string? inputPartCountVariable)
+        {
+            string camelCaseName = repeatingPart.Property.CamelCaseName;
+            string innerTypeName = repeatingPart.InnerType.FullyQualifiedName;
+            var uniqueDelimiters = parts.OfType<DelimiterKeyPart>().Select(d => d.Value).Distinct().ToList();
+            bool sameSeparator = uniqueDelimiters.Contains(repeatingPart.Separator);
+
+            string itemVar = $"{camelCaseName}Item";
+            string listVar = camelCaseName;
+
+            if (sameSeparator && inputPartCountVariable is not null)
+            {
+                // Same separator: repeating items are at indices valuePartIndex..partCount-1
+                writer.WriteLines($"""
+                                   var {listVar} = new global::System.Collections.Generic.List<{innerTypeName}>();
+                                   """);
+
+                writer.StartBlock($"for (int ri = {valuePartIndex}; ri < {inputPartCountVariable}; ri++)");
+
+                // Derive the access expression from getPartInputVariable pattern.
+                // getPartInputVariable(i) produces something like "primaryKey[primaryKeyPartRanges[i]]"
+                // We need "primaryKey[primaryKeyPartRanges[ri]]"
+                string riAccess = getPartInputVariable(valuePartIndex).Replace($"[{valuePartIndex}]", "[ri]");
+
+                WriteRepeatingItemParse(writer, repeatingPart, riAccess, itemVar, listVar, shouldThrow);
+
+                writer.EndBlock();
+                writer.WriteLine();
+            }
+            else
+            {
+                // Different separator: sub-split the part by the repeating separator
+                string partInputVariable = getPartInputVariable(valuePartIndex);
+                string repeatingRangesVar = $"{camelCaseName}Ranges";
+                string repeatingCountVar = $"{camelCaseName}Count";
+
+                writer.WriteLines($"""
+                                   Span<Range> {repeatingRangesVar} = stackalloc Range[128];
+                                   int {repeatingCountVar} = {partInputVariable}.Split({repeatingRangesVar}, '{repeatingPart.Separator}', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                   if ({repeatingCountVar} < 1)
+                                       {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+
+                                   var {listVar} = new global::System.Collections.Generic.List<{innerTypeName}>();
+                                   """);
+
+                // Need to get the base input variable (e.g., "primaryKey") for slicing
+                // partInputVariable is like "primaryKey[primaryKeyPartRanges[2]]"
+                // We need to reference the sub-span: partInputVariable[repeatingRangesVar[ri]]
+                string baseInput = partInputVariable;
+
+                writer.StartBlock($"for (int ri = 0; ri < {repeatingCountVar}; ri++)");
+
+                string riAccess = $"{baseInput}[{repeatingRangesVar}[ri]]";
+                WriteRepeatingItemParse(writer, repeatingPart, riAccess, itemVar, listVar, shouldThrow);
+
+                writer.EndBlock();
+                writer.WriteLine();
+            }
+
+            // Validate at least 1 item
+            writer.WriteLines($"""
+                               if ({listVar}.Count == 0)
+                                   {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+
+                               """);
+        }
+
+        private static void WriteRepeatingItemParse(
+            SourceWriter writer,
+            RepeatingPropertyKeyPart repeatingPart,
+            string itemInput,
+            string itemVar,
+            string listVar,
+            bool shouldThrow)
+        {
+            string innerTypeName = repeatingPart.InnerType.FullyQualifiedName;
+
+            switch (repeatingPart.InnerParseType)
+            {
+                case ParseType.Guid:
+                    writer.WriteLines($"""
+                                       if (!Guid.TryParseExact({itemInput}, "{repeatingPart.Format}", out var {itemVar}))
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                       {listVar}.Add({itemVar});
+                                       """);
+                    break;
+
+                case ParseType.String:
+                    writer.WriteLines($"""
+                                       if ({itemInput}.Length == 0)
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                       {listVar}.Add({itemInput}.ToString());
+                                       """);
+                    break;
+
+                case ParseType.Enum:
+                    if (repeatingPart.Property.EnumSpec is null)
+                        throw new InvalidOperationException($"{nameof(repeatingPart.Property.EnumSpec)} is null");
+
+                    writer.WriteLines($"""
+                                       if (!{repeatingPart.Property.EnumSpec.Name}Helper.TryParse({itemInput}, out var {itemVar}))
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                       {listVar}.Add({itemVar});
+                                       """);
+                    break;
+
+                case ParseType.SpanParsable:
+                    writer.WriteLines($"""
+                                       if (!{innerTypeName}.TryParse({itemInput}, out var {itemVar}))
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                       {listVar}.Add({itemVar});
+                                       """);
+                    break;
+            }
+        }
+
         private static string WriteConstructor(TargetTypeSpec targetTypeSpec)
         {
             var builder = new StringBuilder();
@@ -466,7 +659,12 @@ public sealed partial class SourceGenerator
             if (targetTypeSpec.ConstructorParameters.Count > 0)
             {
                 foreach (var parameter in targetTypeSpec.ConstructorParameters)
-                    builder.Append($"{parameter.CamelCaseName}, ");
+                {
+                    var property = targetTypeSpec.Properties.FirstOrDefault(p => p.CamelCaseName == parameter.CamelCaseName);
+                    builder.Append(property?.CollectionType == CollectionType.ImmutableArray
+                        ? $"global::System.Collections.Immutable.ImmutableArray.CreateRange({parameter.CamelCaseName}), "
+                        : $"{parameter.CamelCaseName}, ");
+                }
 
                 builder.Length -= 2; // Remove the last ", "
             }
@@ -478,7 +676,12 @@ public sealed partial class SourceGenerator
                 builder.Append(" { ");
 
                 foreach (var initializer in targetTypeSpec.PropertyInitializers)
-                    builder.Append($"{initializer.Name} = {initializer.CamelCaseName}, ");
+                {
+                    var property = targetTypeSpec.Properties.FirstOrDefault(p => p.CamelCaseName == initializer.CamelCaseName);
+                    builder.Append(property?.CollectionType == CollectionType.ImmutableArray
+                        ? $"{initializer.Name} = global::System.Collections.Immutable.ImmutableArray.CreateRange({initializer.CamelCaseName}), "
+                        : $"{initializer.Name} = {initializer.CamelCaseName}, ");
+                }
 
                 builder.Length -= 2; // Remove the last ", "
                 builder.Append(" }");
@@ -492,7 +695,13 @@ public sealed partial class SourceGenerator
         {
             writer.StartBlock(methodDeclaration);
 
-            if (keyParts.All(kp => kp is
+            bool hasRepeatingPart = keyParts.Any(kp => kp is RepeatingPropertyKeyPart);
+
+            if (hasRepeatingPart)
+            {
+                WriteRepeatingFormatBody(writer, keyParts, invariantFormatting);
+            }
+            else if (keyParts.All(kp => kp is
                     DelimiterKeyPart
                     or ConstantKeyPart
                     or PropertyKeyPart { FormatType: FormatType.Guid, ExactLengthRequirement: true }
@@ -585,7 +794,207 @@ public sealed partial class SourceGenerator
             static string GetCharsWritten(PropertySpec p) => $"{p.CamelCaseName}CharsWritten";
         }
 
+        private static void WriteRepeatingFormatBody(SourceWriter writer, IReadOnlyList<KeyPart> keyParts, bool invariantFormatting)
+        {
+            // Emit empty collection checks for all repeating parts
+            foreach (var keyPart in keyParts.OfType<RepeatingPropertyKeyPart>())
+            {
+                string countExpression = keyPart.Property.CollectionType == CollectionType.ImmutableArray
+                    ? $"{keyPart.Property.Name}.Length"
+                    : $"{keyPart.Property.Name}.Count";
+
+                writer.WriteLines($"""
+                                   if ({countExpression} == 0)
+                                       throw new FormatException("Collection must contain at least one item.");
+
+                                   """);
+            }
+
+            // Count fixed literal lengths and variable parts for DefaultInterpolatedStringHandler
+            int fixedLiteralLength = 0;
+            int formattedCount = 0;
+            foreach (var keyPart in keyParts)
+            {
+                switch (keyPart)
+                {
+                    case DelimiterKeyPart:
+                        fixedLiteralLength += 1;
+                        break;
+                    case ConstantKeyPart c:
+                        fixedLiteralLength += c.Value.Length;
+                        break;
+                    case PropertyKeyPart:
+                        formattedCount++;
+                        break;
+                    case RepeatingPropertyKeyPart:
+                        // Will be handled dynamically in the loop
+                        break;
+                }
+            }
+
+            string formatProvider = invariantFormatting ? InvariantCulture : "null";
+
+            writer.WriteLines($"""
+                               var handler = new System.Runtime.CompilerServices.DefaultInterpolatedStringHandler({fixedLiteralLength}, {formattedCount}, {formatProvider});
+                               """);
+
+            foreach (var keyPart in keyParts)
+            {
+                switch (keyPart)
+                {
+                    case DelimiterKeyPart d:
+                        writer.WriteLine($"handler.AppendLiteral(\"{d.Value}\");");
+                        break;
+                    case ConstantKeyPart c:
+                        writer.WriteLine($"handler.AppendLiteral(\"{c.Value}\");");
+                        break;
+                    case PropertyKeyPart p:
+                        if (p.Format is not null)
+                            writer.WriteLine($"handler.AppendFormatted({p.Property.Name}, \"{p.Format}\");");
+                        else
+                            writer.WriteLine($"handler.AppendFormatted({p.Property.Name});");
+                        break;
+                    case RepeatingPropertyKeyPart rp:
+                        WriteRepeatingPartFormatLoop(writer, rp);
+                        break;
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine("return handler.ToStringAndClear();");
+        }
+
+        private static void WriteRepeatingPartFormatLoop(SourceWriter writer, RepeatingPropertyKeyPart rp)
+        {
+            string countExpression = rp.Property.CollectionType == CollectionType.ImmutableArray
+                ? $"{rp.Property.Name}.Length"
+                : $"{rp.Property.Name}.Count";
+
+            writer.StartBlock($"for (int i = 0; i < {countExpression}; i++)");
+
+            writer.WriteLines($"""
+                               if (i > 0)
+                                   handler.AppendLiteral("{rp.Separator}");
+
+                               """);
+
+            if (rp.Format is not null)
+                writer.WriteLine($"handler.AppendFormatted({rp.Property.Name}[i], \"{rp.Format}\");");
+            else
+                writer.WriteLine($"handler.AppendFormatted({rp.Property.Name}[i]);");
+
+            writer.EndBlock();
+        }
+
         private static void WriteDynamicFormatMethodBodyForKeyParts(
+            SourceWriter writer, string methodDeclaration, IReadOnlyList<KeyPart> keyParts, bool invariantFormatting)
+        {
+            var repeatingPart = keyParts.OfType<RepeatingPropertyKeyPart>().FirstOrDefault();
+
+            if (repeatingPart is null)
+            {
+                WriteDynamicFormatMethodBodyForFixedKeyParts(writer, methodDeclaration, keyParts, invariantFormatting);
+                return;
+            }
+
+            // Find the index of the repeating part and count fixed value parts before it
+            int repeatingKeyPartIndex = keyParts.ToList().IndexOf(repeatingPart);
+            int fixedPartCount = keyParts.Take(repeatingKeyPartIndex).OfType<ValueKeyPart>().Count();
+            var fixedKeyParts = keyParts.Take(repeatingKeyPartIndex).ToList();
+
+            writer.StartBlock(methodDeclaration);
+
+            // Generate early returns for fixed parts before the repeating section using a switch expression
+            if (fixedKeyParts.Count > 0)
+            {
+                writer.StartBlock("switch (throughPartIndex, includeTrailingDelimiter)");
+
+                for (int i = 0, keyPartIndex = -1; i < fixedKeyParts.Count; i++)
+                {
+                    var keyPart = fixedKeyParts[i];
+
+                    bool isDelimiter = keyPart is DelimiterKeyPart;
+                    if (!isDelimiter)
+                        keyPartIndex++;
+
+                    string switchCase = $"case ({keyPartIndex}, {(isDelimiter ? "true" : "false")}):";
+                    string formatString = BuildFormatStringForKeyParts(fixedKeyParts.Take(i + 1));
+
+                    writer.WriteLine(invariantFormatting
+                        ? $"{switchCase} return string.Create({InvariantCulture}, $\"{formatString}\");"
+                        : $"{switchCase} return $\"{formatString}\";");
+                }
+
+                writer.EndBlock();
+                writer.WriteLine();
+            }
+
+            // Generate the repeating section handling
+            string propName = repeatingPart.Property.Name;
+            char separator = repeatingPart.Separator;
+            string? format = repeatingPart.Format;
+
+            string countExpression = repeatingPart.Property.CollectionType == CollectionType.ImmutableArray
+                ? $"{propName}.Length"
+                : $"{propName}.Count";
+
+            writer.WriteLines($"""
+                               int fixedPartCount = {fixedPartCount};
+                               int repeatIndex = throughPartIndex - fixedPartCount;
+                               int repeatCount = Math.Min(repeatIndex + 1, {countExpression});
+                               if (repeatCount <= 0)
+                                   throw new InvalidOperationException("Invalid throughPartIndex for repeating section.");
+
+                               """);
+
+            // Build the fixed prefix format string (everything before the repeating part).
+            // This includes any structural delimiter immediately before the repeating section.
+            string fixedPrefix = BuildFormatStringForKeyParts(fixedKeyParts);
+
+            // Build the method using a DefaultInterpolatedStringHandler for efficiency
+            writer.WriteLines($$"""
+                                var handler = new System.Runtime.CompilerServices.DefaultInterpolatedStringHandler(0, 0{{(invariantFormatting ? $", {InvariantCulture}" : "")}});
+                                """);
+
+            if (fixedPrefix.Length > 0)
+            {
+                writer.WriteLine(invariantFormatting
+                    ? $"handler.AppendFormatted(string.Create({InvariantCulture}, $\"{fixedPrefix}\"));"
+                    : $"handler.AppendFormatted($\"{fixedPrefix}\");");
+            }
+
+            writer.WriteLine();
+
+            // Write the loop over repeating items, separated by the repeating separator
+            writer.StartBlock("for (int i = 0; i < repeatCount; i++)");
+
+            writer.StartBlock("if (i > 0)");
+            writer.WriteLine($"handler.AppendLiteral(\"{separator}\");");
+            writer.EndBlock();
+
+            writer.WriteLine();
+
+            if (format is not null)
+                writer.WriteLine($"handler.AppendFormatted({propName}[i], \"{format}\");");
+            else
+                writer.WriteLine($"handler.AppendFormatted({propName}[i]);");
+
+            writer.EndBlock(); // end for loop
+            writer.WriteLine();
+
+            // If includeTrailingDelimiter, append the repeating separator after the last item
+            writer.StartBlock("if (includeTrailingDelimiter)");
+            writer.WriteLine($"handler.AppendLiteral(\"{separator}\");");
+            writer.EndBlock();
+            writer.WriteLine();
+
+            writer.WriteLine("return handler.ToStringAndClear();");
+
+            writer.EndBlock(); // end method
+            writer.WriteLine();
+        }
+
+        private static void WriteDynamicFormatMethodBodyForFixedKeyParts(
             SourceWriter writer, string methodDeclaration, IReadOnlyList<KeyPart> keyParts, bool invariantFormatting)
         {
             writer.StartBlock(methodDeclaration);
