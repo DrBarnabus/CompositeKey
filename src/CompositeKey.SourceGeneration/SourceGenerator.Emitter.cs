@@ -456,7 +456,7 @@ public sealed partial class SourceGenerator
 
                 if (valueKeyPart is RepeatingPropertyKeyPart repeatingPart)
                 {
-                    WriteRepeatingPropertyParse(writer, parts, repeatingPart, i, getPartInputVariable, shouldThrow, inputPartCountVariable);
+                    WriteRepeatingPropertyParse(repeatingPart, i);
                     continue;
                 }
 
@@ -526,128 +526,110 @@ public sealed partial class SourceGenerator
 
             static string ToStrictLengthCheck(KeyPart part, string input) =>
                 part.ExactLengthRequirement ? $"{input}.Length != {part.LengthRequired} || " : string.Empty;
-        }
 
-        private static void WriteRepeatingPropertyParse(
-            SourceWriter writer,
-            List<KeyPart> parts,
-            RepeatingPropertyKeyPart repeatingPart,
-            int valuePartIndex,
-            Func<int, string> getPartInputVariable,
-            bool shouldThrow,
-            string? inputPartCountVariable)
-        {
-            string camelCaseName = repeatingPart.Property.CamelCaseName;
-            string innerTypeName = repeatingPart.InnerType.FullyQualifiedName;
-            var uniqueDelimiters = parts.OfType<DelimiterKeyPart>().Select(d => d.Value).Distinct().ToList();
-            bool sameSeparator = uniqueDelimiters.Contains(repeatingPart.Separator);
-
-            string itemVar = $"{camelCaseName}Item";
-            string listVar = camelCaseName;
-
-            if (sameSeparator && inputPartCountVariable is not null)
+            void WriteRepeatingPropertyParse(RepeatingPropertyKeyPart repeatingPart, int valuePartIndex)
             {
-                // Same separator: repeating items are at indices valuePartIndex..partCount-1
+                string camelCaseName = repeatingPart.Property.CamelCaseName;
+                string innerTypeName = repeatingPart.InnerType.FullyQualifiedName;
+                var uniqueDelimiters = parts.OfType<DelimiterKeyPart>().Select(d => d.Value).Distinct().ToList();
+                bool sameSeparator = uniqueDelimiters.Contains(repeatingPart.Separator);
+
+                string itemVar = $"{camelCaseName}Item";
+                string listVar = camelCaseName;
+
+                if (sameSeparator && inputPartCountVariable is not null)
+                {
+                    // Same separator: repeating items are at indices valuePartIndex..partCount-1
+                    writer.WriteLines($"""
+                                       var {listVar} = new global::System.Collections.Generic.List<{innerTypeName}>();
+                                       """);
+
+                    writer.StartBlock($"for (int ri = {valuePartIndex}; ri < {inputPartCountVariable}; ri++)");
+
+                    // Derive the access expression from getPartInputVariable pattern.
+                    // getPartInputVariable(i) produces something like "primaryKey[primaryKeyPartRanges[i]]"
+                    // We need "primaryKey[primaryKeyPartRanges[ri]]"
+                    string riAccess = getPartInputVariable(valuePartIndex).Replace($"[{valuePartIndex}]", "[ri]");
+
+                    WriteRepeatingItemParse(repeatingPart, riAccess, itemVar, listVar);
+
+                    writer.EndBlock();
+                    writer.WriteLine();
+                }
+                else
+                {
+                    // Different separator: sub-split the part by the repeating separator
+                    string partInputVariable = getPartInputVariable(valuePartIndex);
+                    string repeatingRangesVar = $"{camelCaseName}Ranges";
+                    string repeatingCountVar = $"{camelCaseName}Count";
+
+                    writer.WriteLines($"""
+                                       Span<Range> {repeatingRangesVar} = stackalloc Range[128];
+                                       int {repeatingCountVar} = {partInputVariable}.Split({repeatingRangesVar}, '{repeatingPart.Separator}', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                       if ({repeatingCountVar} < 1)
+                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+
+                                       var {listVar} = new global::System.Collections.Generic.List<{innerTypeName}>();
+                                       """);
+
+                    writer.StartBlock($"for (int ri = 0; ri < {repeatingCountVar}; ri++)");
+
+                    string riAccess = $"{partInputVariable}[{repeatingRangesVar}[ri]]";
+                    WriteRepeatingItemParse(repeatingPart, riAccess, itemVar, listVar);
+
+                    writer.EndBlock();
+                    writer.WriteLine();
+                }
+
+                // Validate at least 1 item
                 writer.WriteLines($"""
-                                   var {listVar} = new global::System.Collections.Generic.List<{innerTypeName}>();
-                                   """);
-
-                writer.StartBlock($"for (int ri = {valuePartIndex}; ri < {inputPartCountVariable}; ri++)");
-
-                // Derive the access expression from getPartInputVariable pattern.
-                // getPartInputVariable(i) produces something like "primaryKey[primaryKeyPartRanges[i]]"
-                // We need "primaryKey[primaryKeyPartRanges[ri]]"
-                string riAccess = getPartInputVariable(valuePartIndex).Replace($"[{valuePartIndex}]", "[ri]");
-
-                WriteRepeatingItemParse(writer, repeatingPart, riAccess, itemVar, listVar, shouldThrow);
-
-                writer.EndBlock();
-                writer.WriteLine();
-            }
-            else
-            {
-                // Different separator: sub-split the part by the repeating separator
-                string partInputVariable = getPartInputVariable(valuePartIndex);
-                string repeatingRangesVar = $"{camelCaseName}Ranges";
-                string repeatingCountVar = $"{camelCaseName}Count";
-
-                writer.WriteLines($"""
-                                   Span<Range> {repeatingRangesVar} = stackalloc Range[128];
-                                   int {repeatingCountVar} = {partInputVariable}.Split({repeatingRangesVar}, '{repeatingPart.Separator}', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                                   if ({repeatingCountVar} < 1)
+                                   if ({listVar}.Count == 0)
                                        {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
-                                   var {listVar} = new global::System.Collections.Generic.List<{innerTypeName}>();
                                    """);
-
-                // Need to get the base input variable (e.g., "primaryKey") for slicing
-                // partInputVariable is like "primaryKey[primaryKeyPartRanges[2]]"
-                // We need to reference the sub-span: partInputVariable[repeatingRangesVar[ri]]
-                string baseInput = partInputVariable;
-
-                writer.StartBlock($"for (int ri = 0; ri < {repeatingCountVar}; ri++)");
-
-                string riAccess = $"{baseInput}[{repeatingRangesVar}[ri]]";
-                WriteRepeatingItemParse(writer, repeatingPart, riAccess, itemVar, listVar, shouldThrow);
-
-                writer.EndBlock();
-                writer.WriteLine();
             }
 
-            // Validate at least 1 item
-            writer.WriteLines($"""
-                               if ({listVar}.Count == 0)
-                                   {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-
-                               """);
-        }
-
-        private static void WriteRepeatingItemParse(
-            SourceWriter writer,
-            RepeatingPropertyKeyPart repeatingPart,
-            string itemInput,
-            string itemVar,
-            string listVar,
-            bool shouldThrow)
-        {
-            string innerTypeName = repeatingPart.InnerType.FullyQualifiedName;
-
-            switch (repeatingPart.InnerParseType)
+            void WriteRepeatingItemParse(RepeatingPropertyKeyPart repeatingPart, string itemInput, string itemVar, string listVar)
             {
-                case ParseType.Guid:
-                    writer.WriteLines($"""
-                                       if (!Guid.TryParseExact({itemInput}, "{repeatingPart.Format}", out var {itemVar}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                                       {listVar}.Add({itemVar});
-                                       """);
-                    break;
+                string innerTypeName = repeatingPart.InnerType.FullyQualifiedName;
 
-                case ParseType.String:
-                    writer.WriteLines($"""
-                                       if ({itemInput}.Length == 0)
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                                       {listVar}.Add({itemInput}.ToString());
-                                       """);
-                    break;
+                switch (repeatingPart.InnerParseType)
+                {
+                    case ParseType.Guid:
+                        writer.WriteLines($"""
+                                           if (!Guid.TryParseExact({itemInput}, "{repeatingPart.Format}", out var {itemVar}))
+                                               {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                           {listVar}.Add({itemVar});
+                                           """);
+                        break;
 
-                case ParseType.Enum:
-                    if (repeatingPart.Property.EnumSpec is null)
-                        throw new InvalidOperationException($"{nameof(repeatingPart.Property.EnumSpec)} is null");
+                    case ParseType.String:
+                        writer.WriteLines($"""
+                                           if ({itemInput}.Length == 0)
+                                               {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                           {listVar}.Add({itemInput}.ToString());
+                                           """);
+                        break;
 
-                    writer.WriteLines($"""
-                                       if (!{repeatingPart.Property.EnumSpec.Name}Helper.TryParse({itemInput}, out var {itemVar}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                                       {listVar}.Add({itemVar});
-                                       """);
-                    break;
+                    case ParseType.Enum:
+                        if (repeatingPart.Property.EnumSpec is null)
+                            throw new InvalidOperationException($"{nameof(repeatingPart.Property.EnumSpec)} is null");
 
-                case ParseType.SpanParsable:
-                    writer.WriteLines($"""
-                                       if (!{innerTypeName}.TryParse({itemInput}, out var {itemVar}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                                       {listVar}.Add({itemVar});
-                                       """);
-                    break;
+                        writer.WriteLines($"""
+                                           if (!{repeatingPart.Property.EnumSpec.Name}Helper.TryParse({itemInput}, out var {itemVar}))
+                                               {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                           {listVar}.Add({itemVar});
+                                           """);
+                        break;
+
+                    case ParseType.SpanParsable:
+                        writer.WriteLines($"""
+                                           if (!{innerTypeName}.TryParse({itemInput}, out var {itemVar}))
+                                               {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                           {listVar}.Add({itemVar});
+                                           """);
+                        break;
+                }
             }
         }
 
@@ -699,7 +681,7 @@ public sealed partial class SourceGenerator
 
             if (hasRepeatingPart)
             {
-                WriteRepeatingFormatBody(writer, keyParts, invariantFormatting);
+                WriteRepeatingFormatBody();
             }
             else if (keyParts.All(kp => kp is
                     DelimiterKeyPart
@@ -791,99 +773,97 @@ public sealed partial class SourceGenerator
             writer.EndBlock();
             writer.WriteLine();
 
-            static string GetCharsWritten(PropertySpec p) => $"{p.CamelCaseName}CharsWritten";
-        }
+            return;
 
-        private static void WriteRepeatingFormatBody(SourceWriter writer, IReadOnlyList<KeyPart> keyParts, bool invariantFormatting)
-        {
-            // Emit empty collection checks for all repeating parts
-            foreach (var keyPart in keyParts.OfType<RepeatingPropertyKeyPart>())
+            static string GetCharsWritten(PropertySpec p) => $"{p.CamelCaseName}CharsWritten";
+
+            void WriteRepeatingFormatBody()
             {
-                string countExpression = keyPart.Property.CollectionType == CollectionType.ImmutableArray
-                    ? $"{keyPart.Property.Name}.Length"
-                    : $"{keyPart.Property.Name}.Count";
+                // Emit empty collection checks for all repeating parts
+                foreach (var keyPart in keyParts.OfType<RepeatingPropertyKeyPart>())
+                {
+                    string countExpression = GetCollectionCountExpression(keyPart.Property);
+
+                    writer.WriteLines($"""
+                                       if ({countExpression} == 0)
+                                           throw new FormatException("Collection must contain at least one item.");
+
+                                       """);
+                }
+
+                // Count fixed literal lengths and variable parts for DefaultInterpolatedStringHandler
+                int fixedLiteralLength = 0;
+                int formattedCount = 0;
+                foreach (var keyPart in keyParts)
+                {
+                    switch (keyPart)
+                    {
+                        case DelimiterKeyPart:
+                            fixedLiteralLength += 1;
+                            break;
+                        case ConstantKeyPart c:
+                            fixedLiteralLength += c.Value.Length;
+                            break;
+                        case PropertyKeyPart:
+                            formattedCount++;
+                            break;
+                        case RepeatingPropertyKeyPart:
+                            // Will be handled dynamically in the loop
+                            break;
+                    }
+                }
+
+                string formatProvider = invariantFormatting ? InvariantCulture : "null";
 
                 writer.WriteLines($"""
-                                   if ({countExpression} == 0)
-                                       throw new FormatException("Collection must contain at least one item.");
+                                   var handler = new System.Runtime.CompilerServices.DefaultInterpolatedStringHandler({fixedLiteralLength}, {formattedCount}, {formatProvider});
+                                   """);
+
+                foreach (var keyPart in keyParts)
+                {
+                    switch (keyPart)
+                    {
+                        case DelimiterKeyPart d:
+                            writer.WriteLine($"handler.AppendLiteral(\"{d.Value}\");");
+                            break;
+                        case ConstantKeyPart c:
+                            writer.WriteLine($"handler.AppendLiteral(\"{c.Value}\");");
+                            break;
+                        case PropertyKeyPart p:
+                            if (p.Format is not null)
+                                writer.WriteLine($"handler.AppendFormatted({p.Property.Name}, \"{p.Format}\");");
+                            else
+                                writer.WriteLine($"handler.AppendFormatted({p.Property.Name});");
+                            break;
+                        case RepeatingPropertyKeyPart rp:
+                            WriteRepeatingPartFormatLoop(rp);
+                            break;
+                    }
+                }
+
+                writer.WriteLine();
+                writer.WriteLine("return handler.ToStringAndClear();");
+            }
+
+            void WriteRepeatingPartFormatLoop(RepeatingPropertyKeyPart rp)
+            {
+                string countExpression = GetCollectionCountExpression(rp.Property);
+
+                writer.StartBlock($"for (int i = 0; i < {countExpression}; i++)");
+
+                writer.WriteLines($"""
+                                   if (i > 0)
+                                       handler.AppendLiteral("{rp.Separator}");
 
                                    """);
+
+                if (rp.Format is not null)
+                    writer.WriteLine($"handler.AppendFormatted({rp.Property.Name}[i], \"{rp.Format}\");");
+                else
+                    writer.WriteLine($"handler.AppendFormatted({rp.Property.Name}[i]);");
+
+                writer.EndBlock();
             }
-
-            // Count fixed literal lengths and variable parts for DefaultInterpolatedStringHandler
-            int fixedLiteralLength = 0;
-            int formattedCount = 0;
-            foreach (var keyPart in keyParts)
-            {
-                switch (keyPart)
-                {
-                    case DelimiterKeyPart:
-                        fixedLiteralLength += 1;
-                        break;
-                    case ConstantKeyPart c:
-                        fixedLiteralLength += c.Value.Length;
-                        break;
-                    case PropertyKeyPart:
-                        formattedCount++;
-                        break;
-                    case RepeatingPropertyKeyPart:
-                        // Will be handled dynamically in the loop
-                        break;
-                }
-            }
-
-            string formatProvider = invariantFormatting ? InvariantCulture : "null";
-
-            writer.WriteLines($"""
-                               var handler = new System.Runtime.CompilerServices.DefaultInterpolatedStringHandler({fixedLiteralLength}, {formattedCount}, {formatProvider});
-                               """);
-
-            foreach (var keyPart in keyParts)
-            {
-                switch (keyPart)
-                {
-                    case DelimiterKeyPart d:
-                        writer.WriteLine($"handler.AppendLiteral(\"{d.Value}\");");
-                        break;
-                    case ConstantKeyPart c:
-                        writer.WriteLine($"handler.AppendLiteral(\"{c.Value}\");");
-                        break;
-                    case PropertyKeyPart p:
-                        if (p.Format is not null)
-                            writer.WriteLine($"handler.AppendFormatted({p.Property.Name}, \"{p.Format}\");");
-                        else
-                            writer.WriteLine($"handler.AppendFormatted({p.Property.Name});");
-                        break;
-                    case RepeatingPropertyKeyPart rp:
-                        WriteRepeatingPartFormatLoop(writer, rp);
-                        break;
-                }
-            }
-
-            writer.WriteLine();
-            writer.WriteLine("return handler.ToStringAndClear();");
-        }
-
-        private static void WriteRepeatingPartFormatLoop(SourceWriter writer, RepeatingPropertyKeyPart rp)
-        {
-            string countExpression = rp.Property.CollectionType == CollectionType.ImmutableArray
-                ? $"{rp.Property.Name}.Length"
-                : $"{rp.Property.Name}.Count";
-
-            writer.StartBlock($"for (int i = 0; i < {countExpression}; i++)");
-
-            writer.WriteLines($"""
-                               if (i > 0)
-                                   handler.AppendLiteral("{rp.Separator}");
-
-                               """);
-
-            if (rp.Format is not null)
-                writer.WriteLine($"handler.AppendFormatted({rp.Property.Name}[i], \"{rp.Format}\");");
-            else
-                writer.WriteLine($"handler.AppendFormatted({rp.Property.Name}[i]);");
-
-            writer.EndBlock();
         }
 
         private static void WriteDynamicFormatMethodBodyForKeyParts(
@@ -904,9 +884,19 @@ public sealed partial class SourceGenerator
 
             writer.StartBlock(methodDeclaration);
 
-            // Generate early returns for fixed parts before the repeating section using a switch expression
-            if (fixedKeyParts.Count > 0)
+            WriteFixedPartCases();
+            WriteRepeatingPartHandler();
+
+            writer.EndBlock(); // end method
+            writer.WriteLine();
+
+            return;
+
+            void WriteFixedPartCases()
             {
+                if (fixedKeyParts.Count == 0)
+                    return;
+
                 writer.StartBlock("switch (throughPartIndex, includeTrailingDelimiter)");
 
                 for (int i = 0, keyPartIndex = -1; i < fixedKeyParts.Count; i++)
@@ -929,69 +919,60 @@ public sealed partial class SourceGenerator
                 writer.WriteLine();
             }
 
-            // Generate the repeating section handling
-            string propName = repeatingPart.Property.Name;
-            char separator = repeatingPart.Separator;
-            string? format = repeatingPart.Format;
-
-            string countExpression = repeatingPart.Property.CollectionType == CollectionType.ImmutableArray
-                ? $"{propName}.Length"
-                : $"{propName}.Count";
-
-            writer.WriteLines($"""
-                               int fixedPartCount = {fixedPartCount};
-                               int repeatIndex = throughPartIndex - fixedPartCount;
-                               int repeatCount = Math.Min(repeatIndex + 1, {countExpression});
-                               if (repeatCount <= 0)
-                                   throw new InvalidOperationException("Invalid throughPartIndex for repeating section.");
-
-                               """);
-
-            // Build the fixed prefix format string (everything before the repeating part).
-            // This includes any structural delimiter immediately before the repeating section.
-            string fixedPrefix = BuildFormatStringForKeyParts(fixedKeyParts);
-
-            // Build the method using a DefaultInterpolatedStringHandler for efficiency
-            writer.WriteLines($$"""
-                                var handler = new System.Runtime.CompilerServices.DefaultInterpolatedStringHandler(0, 0{{(invariantFormatting ? $", {InvariantCulture}" : "")}});
-                                """);
-
-            if (fixedPrefix.Length > 0)
+            void WriteRepeatingPartHandler()
             {
-                writer.WriteLine(invariantFormatting
-                    ? $"handler.AppendFormatted(string.Create({InvariantCulture}, $\"{fixedPrefix}\"));"
-                    : $"handler.AppendFormatted($\"{fixedPrefix}\");");
+                string propName = repeatingPart.Property.Name;
+                char separator = repeatingPart.Separator;
+                string? format = repeatingPart.Format;
+                string countExpression = GetCollectionCountExpression(repeatingPart.Property);
+
+                writer.WriteLines($"""
+                                   int fixedPartCount = {fixedPartCount};
+                                   int repeatIndex = throughPartIndex - fixedPartCount;
+                                   int repeatCount = Math.Min(repeatIndex + 1, {countExpression});
+                                   if (repeatCount <= 0)
+                                       throw new InvalidOperationException("Invalid throughPartIndex for repeating section.");
+
+                                   """);
+
+                string fixedPrefix = BuildFormatStringForKeyParts(fixedKeyParts);
+
+                writer.WriteLines($$"""
+                                    var handler = new System.Runtime.CompilerServices.DefaultInterpolatedStringHandler(0, 0{{(invariantFormatting ? $", {InvariantCulture}" : "")}});
+                                    """);
+
+                if (fixedPrefix.Length > 0)
+                {
+                    writer.WriteLine(invariantFormatting
+                        ? $"handler.AppendFormatted(string.Create({InvariantCulture}, $\"{fixedPrefix}\"));"
+                        : $"handler.AppendFormatted($\"{fixedPrefix}\");");
+                }
+
+                writer.WriteLine();
+
+                writer.StartBlock("for (int i = 0; i < repeatCount; i++)");
+
+                writer.StartBlock("if (i > 0)");
+                writer.WriteLine($"handler.AppendLiteral(\"{separator}\");");
+                writer.EndBlock();
+
+                writer.WriteLine();
+
+                if (format is not null)
+                    writer.WriteLine($"handler.AppendFormatted({propName}[i], \"{format}\");");
+                else
+                    writer.WriteLine($"handler.AppendFormatted({propName}[i]);");
+
+                writer.EndBlock(); // end for loop
+                writer.WriteLine();
+
+                writer.StartBlock("if (includeTrailingDelimiter)");
+                writer.WriteLine($"handler.AppendLiteral(\"{separator}\");");
+                writer.EndBlock();
+                writer.WriteLine();
+
+                writer.WriteLine("return handler.ToStringAndClear();");
             }
-
-            writer.WriteLine();
-
-            // Write the loop over repeating items, separated by the repeating separator
-            writer.StartBlock("for (int i = 0; i < repeatCount; i++)");
-
-            writer.StartBlock("if (i > 0)");
-            writer.WriteLine($"handler.AppendLiteral(\"{separator}\");");
-            writer.EndBlock();
-
-            writer.WriteLine();
-
-            if (format is not null)
-                writer.WriteLine($"handler.AppendFormatted({propName}[i], \"{format}\");");
-            else
-                writer.WriteLine($"handler.AppendFormatted({propName}[i]);");
-
-            writer.EndBlock(); // end for loop
-            writer.WriteLine();
-
-            // If includeTrailingDelimiter, append the repeating separator after the last item
-            writer.StartBlock("if (includeTrailingDelimiter)");
-            writer.WriteLine($"handler.AppendLiteral(\"{separator}\");");
-            writer.EndBlock();
-            writer.WriteLine();
-
-            writer.WriteLine("return handler.ToStringAndClear();");
-
-            writer.EndBlock(); // end method
-            writer.WriteLine();
         }
 
         private static void WriteDynamicFormatMethodBodyForFixedKeyParts(
@@ -1024,6 +1005,11 @@ public sealed partial class SourceGenerator
             writer.EndBlock();
             writer.WriteLine();
         }
+
+        private static string GetCollectionCountExpression(PropertySpec property) =>
+            property.CollectionType == CollectionType.ImmutableArray
+                ? $"{property.Name}.Length"
+                : $"{property.Name}.Count";
 
         private static string BuildFormatStringForKeyParts(IEnumerable<KeyPart> keyParts)
         {
