@@ -74,33 +74,34 @@ public class TemplateStringTokenizer(char? primaryKeySeparator)
 
         int dotsIndex = propertySpan.LastIndexOf("...".AsSpan());
         if (dotsIndex >= 0)
-        {
-            var beforeDots = propertySpan[..dotsIndex];
-            var afterDots = propertySpan[(dotsIndex + 3)..];
+            return ReadRepeatingProperty(propertySpan, dotsIndex);
 
-            if (afterDots.Length != 1)
-                return ReadResult<TemplateToken>.CreateFailure();
+        int colonIndex = propertySpan.IndexOf(':');
+        var token = colonIndex != -1
+            ? TemplateToken.Property(propertySpan[..colonIndex].ToString(), propertySpan[(colonIndex + 1)..].ToString())
+            : TemplateToken.Property(propertySpan.ToString());
 
-            char separator = afterDots[0];
-            if (char.IsLetterOrDigit(separator) || separator == '{' || separator == '}')
-                return ReadResult<TemplateToken>.CreateFailure();
+        return ReadResult<TemplateToken>.CreateSuccess(token);
+    }
 
-            int colonIndex = beforeDots.IndexOf(':');
-            var token = colonIndex != -1
-                ? TemplateToken.RepeatingProperty(beforeDots[..colonIndex].ToString(), separator, beforeDots[(colonIndex + 1)..].ToString())
-                : TemplateToken.RepeatingProperty(beforeDots.ToString(), separator);
+    private static ReadResult<TemplateToken> ReadRepeatingProperty(ReadOnlySpan<char> propertySpan, int dotsIndex)
+    {
+        var beforeDots = propertySpan[..dotsIndex];
+        var afterDots = propertySpan[(dotsIndex + 3)..];
 
-            return ReadResult<TemplateToken>.CreateSuccess(token);
-        }
+        if (afterDots.Length != 1)
+            return ReadResult<TemplateToken>.CreateFailure();
 
-        {
-            int colonIndex = propertySpan.IndexOf(':');
-            var token = colonIndex != -1
-                ? TemplateToken.Property(propertySpan[..colonIndex].ToString(), propertySpan[(colonIndex + 1)..].ToString())
-                : TemplateToken.Property(propertySpan.ToString());
+        char separator = afterDots[0];
+        if (char.IsLetterOrDigit(separator) || separator == '{' || separator == '}')
+            return ReadResult<TemplateToken>.CreateFailure();
 
-            return ReadResult<TemplateToken>.CreateSuccess(token);
-        }
+        int colonIndex = beforeDots.IndexOf(':');
+        var token = colonIndex != -1
+            ? TemplateToken.RepeatingProperty(beforeDots[..colonIndex].ToString(), separator, beforeDots[(colonIndex + 1)..].ToString())
+            : TemplateToken.RepeatingProperty(beforeDots.ToString(), separator);
+
+        return ReadResult<TemplateToken>.CreateSuccess(token);
     }
 
     private static ReadResult<TemplateToken> ReadConstantValue(ReadOnlySpan<char> input, ref int currentPosition)
