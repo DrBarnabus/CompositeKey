@@ -629,7 +629,7 @@ public static class PropertyAnalyzerTests
         }
 
         [Fact]
-        public async Task CollectionPropertyWithoutRepeatingSyntax_ReportsError()
+        public async Task RepeatingTypeWithoutRepeatingSyntax_ReportsError()
         {
             // Arrange
             var test = new PropertyAnalyzerTest

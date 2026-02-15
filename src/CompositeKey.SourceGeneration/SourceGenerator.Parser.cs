@@ -182,12 +182,12 @@ public sealed partial class SourceGenerator
                 keyParts.Add(keyPart);
             }
 
-            // Validate: collection property used without repeating syntax -> COMPOSITE0010
+            // Validate: repeating type used without repeating syntax -> COMPOSITE0010
             foreach (var keyPart in keyParts)
             {
                 if (keyPart is PropertyKeyPart pkp && pkp.Property.CollectionType != CollectionType.None)
                 {
-                    ReportDiagnostic(DiagnosticDescriptors.CollectionPropertyMustUseRepeatingSyntax, _location, pkp.Property.Name);
+                    ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, _location, pkp.Property.Name);
                     return null;
                 }
             }
@@ -247,10 +247,10 @@ public sealed partial class SourceGenerator
                 propertiesUsedInKey.Add(property);
                 var (propertySpec, typeSymbol) = property;
 
-                // Collection properties must use repeating syntax
+                // Repeating type properties must use repeating syntax
                 if (propertySpec.CollectionType != CollectionType.None)
                 {
-                    ReportDiagnostic(DiagnosticDescriptors.CollectionPropertyMustUseRepeatingSyntax, _location, propertySpec.Name);
+                    ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, _location, propertySpec.Name);
                     return null;
                 }
 

@@ -23,7 +23,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
         DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter,
         DiagnosticDescriptors.PropertyHasInvalidOrUnsupportedFormat,
         DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType,
-        DiagnosticDescriptors.CollectionPropertyMustUseRepeatingSyntax);
+        DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax);
 
     /// <summary>
     /// Analyzes properties referenced in a CompositeKey template string.
@@ -77,19 +77,19 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
                         accessibilityResult);
                 }
 
-                // Check if a regular property is a collection type (should use repeating syntax)
-                var collectionTypeInfo = CreateCollectionPropertyTypeInfo(property, context.Compilation);
-                var nonCollectionResult = PropertyValidation.ValidateNonCollectionPropertyType(
+                // Check if a regular property is a repeating type (should use repeating syntax)
+                var repeatingTypeInfo = CreateRepeatingPropertyTypeInfo(property, context.Compilation);
+                var nonRepeatingResult = PropertyValidation.ValidateNonRepeatingPropertyType(
                     property.Name,
-                    collectionTypeInfo);
+                    repeatingTypeInfo);
 
-                if (!nonCollectionResult.IsSuccess)
+                if (!nonRepeatingResult.IsSuccess)
                 {
                     ReportPropertyDiagnostic(
                         context,
                         typeDeclaration,
                         property,
-                        nonCollectionResult);
+                        nonRepeatingResult);
                 }
 
                 var typeInfo = CreatePropertyTypeInfo(property, context.Compilation);
@@ -145,19 +145,19 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
                         accessibilityResult);
                 }
 
-                // Check if the property is a valid collection type
-                var collectionTypeInfo = CreateCollectionPropertyTypeInfo(property, context.Compilation);
-                var collectionResult = PropertyValidation.ValidateCollectionPropertyType(
+                // Check if the property is a valid repeating type
+                var repeatingTypeInfo = CreateRepeatingPropertyTypeInfo(property, context.Compilation);
+                var repeatingResult = PropertyValidation.ValidateRepeatingPropertyType(
                     property.Name,
-                    collectionTypeInfo);
+                    repeatingTypeInfo);
 
-                if (!collectionResult.IsSuccess)
+                if (!repeatingResult.IsSuccess)
                 {
                     ReportPropertyDiagnostic(
                         context,
                         typeDeclaration,
                         property,
-                        collectionResult);
+                        repeatingResult);
                     continue;
                 }
 
@@ -239,9 +239,9 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
     }
 
     /// <summary>
-    /// Creates CollectionPropertyTypeInfo from a property symbol for collection type detection.
+    /// Creates RepeatingPropertyTypeInfo from a property symbol for repeating type detection.
     /// </summary>
-    private static PropertyValidation.CollectionPropertyTypeInfo CreateCollectionPropertyTypeInfo(
+    private static PropertyValidation.RepeatingPropertyTypeInfo CreateRepeatingPropertyTypeInfo(
         IPropertySymbol property,
         Compilation compilation)
     {
@@ -249,7 +249,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
 
         if (propertyType is not INamedTypeSymbol namedType || !namedType.IsGenericType)
         {
-            return new PropertyValidation.CollectionPropertyTypeInfo(
+            return new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: propertyType.ToDisplayString(),
                 IsList: false,
                 IsReadOnlyList: false,
@@ -262,7 +262,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
         var readOnlyListType = compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyList`1");
         var immutableArrayType = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray`1");
 
-        return new PropertyValidation.CollectionPropertyTypeInfo(
+        return new PropertyValidation.RepeatingPropertyTypeInfo(
             TypeName: propertyType.ToDisplayString(),
             IsList: listType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, listType),
             IsReadOnlyList: readOnlyListType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, readOnlyListType),

@@ -72,11 +72,11 @@
     <data name="RepeatingPropertyMustUseCollectionTypeMessageFormat" xml:space="preserve">
         <value>The property '{0}' uses repeating syntax but is not a supported collection type (List&lt;T&gt;, IReadOnlyList&lt;T&gt;, or ImmutableArray&lt;T&gt;).</value>
     </data>
-    <data name="CollectionPropertyMustUseRepeatingSyntaxTitle" xml:space="preserve">
-        <value>Collection property must use repeating syntax.</value>
+    <data name="RepeatingTypeMustUseRepeatingSyntaxTitle" xml:space="preserve">
+        <value>Repeating type must use repeating syntax.</value>
     </data>
-    <data name="CollectionPropertyMustUseRepeatingSyntaxMessageFormat" xml:space="preserve">
-        <value>The property '{0}' is a collection type but does not use repeating syntax ('...separator') in the template.</value>
+    <data name="RepeatingTypeMustUseRepeatingSyntaxMessageFormat" xml:space="preserve">
+        <value>The property '{0}' is a repeating type but does not use repeating syntax ('...separator') in the template.</value>
     </data>
     <data name="RepeatingPropertyMustBeLastPartTitle" xml:space="preserve">
         <value>Repeating property must be the last part in its key section.</value>

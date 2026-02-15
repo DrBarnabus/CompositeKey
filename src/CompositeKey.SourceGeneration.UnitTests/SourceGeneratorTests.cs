@@ -573,7 +573,7 @@ public static class SourceGeneratorTests
     }
 
     [Fact]
-    public static void NonCollectionTypeWithRepeatingSyntax_ShouldFailCompilation()
+    public static void NonRepeatingTypeWithRepeatingSyntax_ShouldFailCompilation()
     {
         const string Source = """
                               using System;
@@ -593,7 +593,7 @@ public static class SourceGeneratorTests
     }
 
     [Fact]
-    public static void CollectionTypeWithoutRepeatingSyntax_ShouldFailCompilation()
+    public static void RepeatingTypeWithoutRepeatingSyntax_ShouldFailCompilation()
     {
         const string Source = """
                               using System;

@@ -111,12 +111,12 @@ public static class DiagnosticDescriptors
         isEnabledByDefault: true);
 
     /// <summary>
-    /// COMPOSITE0010: Collection property must use repeating syntax.
+    /// COMPOSITE0010: Repeating type must use repeating syntax.
     /// </summary>
-    public static DiagnosticDescriptor CollectionPropertyMustUseRepeatingSyntax { get; } = new(
+    public static DiagnosticDescriptor RepeatingTypeMustUseRepeatingSyntax { get; } = new(
         id: "COMPOSITE0010",
-        title: Strings.CollectionPropertyMustUseRepeatingSyntaxTitle,
-        messageFormat: Strings.CollectionPropertyMustUseRepeatingSyntaxMessageFormat,
+        title: Strings.RepeatingTypeMustUseRepeatingSyntaxTitle,
+        messageFormat: Strings.RepeatingTypeMustUseRepeatingSyntaxMessageFormat,
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

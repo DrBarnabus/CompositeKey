@@ -413,93 +413,93 @@ public static class PropertyValidationTests
         }
     }
 
-    public class CollectionPropertyTypeValidation
+    public class RepeatingPropertyTypeValidation
     {
         [Fact]
-        public void ListType_IsCollection()
+        public void ListType_IsRepeatingType()
         {
             // Arrange
-            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: "System.Collections.Generic.List<System.Guid>",
                 IsList: true,
                 IsReadOnlyList: false,
                 IsImmutableArray: false);
 
             // Assert
-            collectionTypeInfo.IsCollection.ShouldBeTrue();
+            repeatingTypeInfo.IsRepeatingType.ShouldBeTrue();
         }
 
         [Fact]
-        public void ReadOnlyListType_IsCollection()
+        public void ReadOnlyListType_IsRepeatingType()
         {
             // Arrange
-            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: "System.Collections.Generic.IReadOnlyList<string>",
                 IsList: false,
                 IsReadOnlyList: true,
                 IsImmutableArray: false);
 
             // Assert
-            collectionTypeInfo.IsCollection.ShouldBeTrue();
+            repeatingTypeInfo.IsRepeatingType.ShouldBeTrue();
         }
 
         [Fact]
-        public void ImmutableArrayType_IsCollection()
+        public void ImmutableArrayType_IsRepeatingType()
         {
             // Arrange
-            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: "System.Collections.Immutable.ImmutableArray<int>",
                 IsList: false,
                 IsReadOnlyList: false,
                 IsImmutableArray: true);
 
             // Assert
-            collectionTypeInfo.IsCollection.ShouldBeTrue();
+            repeatingTypeInfo.IsRepeatingType.ShouldBeTrue();
         }
 
         [Fact]
-        public void NonCollectionType_IsNotCollection()
+        public void NonRepeatingType_IsNotRepeatingType()
         {
             // Arrange
-            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: "System.String",
                 IsList: false,
                 IsReadOnlyList: false,
                 IsImmutableArray: false);
 
             // Assert
-            collectionTypeInfo.IsCollection.ShouldBeFalse();
+            repeatingTypeInfo.IsRepeatingType.ShouldBeFalse();
         }
 
         [Fact]
-        public void RepeatingPropertyWithCollectionType_ShouldReturnSuccess()
+        public void RepeatingPropertyWithRepeatingType_ShouldReturnSuccess()
         {
             // Arrange
-            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: "System.Collections.Generic.List<System.Guid>",
                 IsList: true,
                 IsReadOnlyList: false,
                 IsImmutableArray: false);
 
             // Act
-            var result = PropertyValidation.ValidateCollectionPropertyType("Tags", collectionTypeInfo);
+            var result = PropertyValidation.ValidateRepeatingPropertyType("Tags", repeatingTypeInfo);
 
             // Assert
             result.IsSuccess.ShouldBeTrue();
         }
 
         [Fact]
-        public void RepeatingPropertyWithNonCollectionType_ShouldReturnFailure()
+        public void RepeatingPropertyWithNonRepeatingType_ShouldReturnFailure()
         {
             // Arrange
-            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: "System.String",
                 IsList: false,
                 IsReadOnlyList: false,
                 IsImmutableArray: false);
 
             // Act
-            var result = PropertyValidation.ValidateCollectionPropertyType("Name", collectionTypeInfo);
+            var result = PropertyValidation.ValidateRepeatingPropertyType("Name", repeatingTypeInfo);
 
             // Assert
             result.IsSuccess.ShouldBeFalse();
@@ -509,37 +509,37 @@ public static class PropertyValidationTests
         }
 
         [Fact]
-        public void NonRepeatingPropertyWithCollectionType_ShouldReturnFailure()
+        public void NonRepeatingPropertyWithRepeatingType_ShouldReturnFailure()
         {
             // Arrange
-            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: "System.Collections.Generic.List<System.Guid>",
                 IsList: true,
                 IsReadOnlyList: false,
                 IsImmutableArray: false);
 
             // Act
-            var result = PropertyValidation.ValidateNonCollectionPropertyType("Tags", collectionTypeInfo);
+            var result = PropertyValidation.ValidateNonRepeatingPropertyType("Tags", repeatingTypeInfo);
 
             // Assert
             result.IsSuccess.ShouldBeFalse();
-            result.Descriptor.ShouldBe(DiagnosticDescriptors.CollectionPropertyMustUseRepeatingSyntax);
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax);
             result.MessageArgs.ShouldNotBeNull();
             result.MessageArgs[0].ShouldBe("Tags");
         }
 
         [Fact]
-        public void NonRepeatingPropertyWithNonCollectionType_ShouldReturnSuccess()
+        public void NonRepeatingPropertyWithNonRepeatingType_ShouldReturnSuccess()
         {
             // Arrange
-            var collectionTypeInfo = new PropertyValidation.CollectionPropertyTypeInfo(
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
                 TypeName: "System.String",
                 IsList: false,
                 IsReadOnlyList: false,
                 IsImmutableArray: false);
 
             // Act
-            var result = PropertyValidation.ValidateNonCollectionPropertyType("Name", collectionTypeInfo);
+            var result = PropertyValidation.ValidateNonRepeatingPropertyType("Name", repeatingTypeInfo);
 
             // Assert
             result.IsSuccess.ShouldBeTrue();

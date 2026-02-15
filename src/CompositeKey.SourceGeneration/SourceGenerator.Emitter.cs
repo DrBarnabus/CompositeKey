@@ -782,7 +782,7 @@ public sealed partial class SourceGenerator
                 // Emit empty collection checks for all repeating parts
                 foreach (var keyPart in keyParts.OfType<RepeatingPropertyKeyPart>())
                 {
-                    string countExpression = GetCollectionCountExpression(keyPart.Property);
+                    string countExpression = GetRepeatingCountExpression(keyPart.Property);
 
                     writer.WriteLines($"""
                                        if ({countExpression} == 0)
@@ -847,7 +847,7 @@ public sealed partial class SourceGenerator
 
             void WriteRepeatingPartFormatLoop(RepeatingPropertyKeyPart rp)
             {
-                string countExpression = GetCollectionCountExpression(rp.Property);
+                string countExpression = GetRepeatingCountExpression(rp.Property);
 
                 writer.StartBlock($"for (int i = 0; i < {countExpression}; i++)");
 
@@ -924,7 +924,7 @@ public sealed partial class SourceGenerator
                 string propName = repeatingPart.Property.Name;
                 char separator = repeatingPart.Separator;
                 string? format = repeatingPart.Format;
-                string countExpression = GetCollectionCountExpression(repeatingPart.Property);
+                string countExpression = GetRepeatingCountExpression(repeatingPart.Property);
 
                 writer.WriteLines($"""
                                    int fixedPartCount = {fixedPartCount};
@@ -1006,7 +1006,7 @@ public sealed partial class SourceGenerator
             writer.WriteLine();
         }
 
-        private static string GetCollectionCountExpression(PropertySpec property) =>
+        private static string GetRepeatingCountExpression(PropertySpec property) =>
             property.CollectionType == CollectionType.ImmutableArray
                 ? $"{property.Name}.Length"
                 : $"{property.Name}.Count";

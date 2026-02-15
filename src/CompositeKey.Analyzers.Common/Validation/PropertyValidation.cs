@@ -40,13 +40,13 @@ public static class PropertyValidation
         bool HasGetter,
         bool HasSetter);
 
-    public record CollectionPropertyTypeInfo(
+    public record RepeatingPropertyTypeInfo(
         string TypeName,
         bool IsList,
         bool IsReadOnlyList,
         bool IsImmutableArray)
     {
-        public bool IsCollection => IsList || IsReadOnlyList || IsImmutableArray;
+        public bool IsRepeatingType => IsList || IsReadOnlyList || IsImmutableArray;
     }
 
     /// <summary>
@@ -67,11 +67,11 @@ public static class PropertyValidation
     /// <summary>
     /// Validates that a property used with repeating syntax is a supported collection type.
     /// </summary>
-    public static PropertyValidationResult ValidateCollectionPropertyType(
+    public static PropertyValidationResult ValidateRepeatingPropertyType(
         string propertyName,
-        CollectionPropertyTypeInfo collectionTypeInfo)
+        RepeatingPropertyTypeInfo repeatingTypeInfo)
     {
-        if (!collectionTypeInfo.IsCollection)
+        if (!repeatingTypeInfo.IsRepeatingType)
         {
             return PropertyValidationResult.Failure(
                 DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType,
@@ -82,16 +82,16 @@ public static class PropertyValidation
     }
 
     /// <summary>
-    /// Validates that a collection property uses repeating syntax.
+    /// Validates that a repeating type property uses repeating syntax.
     /// </summary>
-    public static PropertyValidationResult ValidateNonCollectionPropertyType(
+    public static PropertyValidationResult ValidateNonRepeatingPropertyType(
         string propertyName,
-        CollectionPropertyTypeInfo collectionTypeInfo)
+        RepeatingPropertyTypeInfo repeatingTypeInfo)
     {
-        if (collectionTypeInfo.IsCollection)
+        if (repeatingTypeInfo.IsRepeatingType)
         {
             return PropertyValidationResult.Failure(
-                DiagnosticDescriptors.CollectionPropertyMustUseRepeatingSyntax,
+                DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax,
                 propertyName);
         }
 
