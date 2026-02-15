@@ -75,12 +75,12 @@ public sealed partial class SourceGenerator
 
                 WriteLengthCheck(writer, keyParts, "primaryKey", true);
 
-                Func<int, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
+                Func<string, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
                 string? primaryKeyPartCountVariable = null;
                 if (keyParts.Count > 1)
                 {
                     WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, true, out primaryKeyPartCountVariable);
-                    getPrimaryKeyPartInputVariable = i => $"primaryKey[{primaryKeyPartRangesVariable}[{i}]]";
+                    getPrimaryKeyPartInputVariable = indexExpr => $"primaryKey[{primaryKeyPartRangesVariable}[{indexExpr}]]";
                 }
 
                 WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, true, primaryKeyPartCountVariable);
@@ -114,12 +114,12 @@ public sealed partial class SourceGenerator
 
                 WriteLengthCheck(writer, keyParts, "primaryKey", false);
 
-                Func<int, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
+                Func<string, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
                 string? primaryKeyPartCountVariable = null;
                 if (keyParts.Count > 1)
                 {
                     WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, false, out primaryKeyPartCountVariable);
-                    getPrimaryKeyPartInputVariable = i => $"primaryKey[{primaryKeyPartRangesVariable}[{i}]]";
+                    getPrimaryKeyPartInputVariable = indexExpr => $"primaryKey[{primaryKeyPartRangesVariable}[{indexExpr}]]";
                 }
 
                 WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, false, primaryKeyPartCountVariable);
@@ -234,20 +234,20 @@ public sealed partial class SourceGenerator
                 WriteLengthCheck(writer, partitionKeyParts, "partitionKey", true);
                 WriteLengthCheck(writer, sortKeyParts, "sortKey", true);
 
-                Func<int, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
+                Func<string, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
                 string? partitionKeyPartCountVariable = null;
                 if (partitionKeyParts.Count > 1)
                 {
                     WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, true, out partitionKeyPartCountVariable);
-                    getPartitionKeyPartInputVariable = i => $"partitionKey[{partitionKeyPartRangesVariable}[{i}]]";
+                    getPartitionKeyPartInputVariable = indexExpr => $"partitionKey[{partitionKeyPartRangesVariable}[{indexExpr}]]";
                 }
 
-                Func<int, string> getSortKeyPartInputVariable = static _ => "sortKey";
+                Func<string, string> getSortKeyPartInputVariable = static _ => "sortKey";
                 string? sortKeyPartCountVariable = null;
                 if (sortKeyParts.Count > 1)
                 {
                     WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, true, out sortKeyPartCountVariable);
-                    getSortKeyPartInputVariable = i => $"sortKey[{sortKeyPartRangesVariable}[{i}]]";
+                    getSortKeyPartInputVariable = indexExpr => $"sortKey[{sortKeyPartRangesVariable}[{indexExpr}]]";
                 }
 
                 var propertyNameCounts = partitionKeyParts.Concat(sortKeyParts).OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
@@ -284,20 +284,20 @@ public sealed partial class SourceGenerator
                 WriteLengthCheck(writer, partitionKeyParts, "partitionKey", false);
                 WriteLengthCheck(writer, sortKeyParts, "sortKey", false);
 
-                Func<int, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
+                Func<string, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
                 string? partitionKeyPartCountVariable = null;
                 if (partitionKeyParts.Count > 1)
                 {
                     WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, false, out partitionKeyPartCountVariable);
-                    getPartitionKeyPartInputVariable = i => $"partitionKey[{partitionKeyPartRangesVariable}[{i}]]";
+                    getPartitionKeyPartInputVariable = indexExpr => $"partitionKey[{partitionKeyPartRangesVariable}[{indexExpr}]]";
                 }
 
-                Func<int, string> getSortKeyPartInputVariable = static _ => "sortKey";
+                Func<string, string> getSortKeyPartInputVariable = static _ => "sortKey";
                 string? sortKeyPartCountVariable = null;
                 if (sortKeyParts.Count > 1)
                 {
                     WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, false, out sortKeyPartCountVariable);
-                    getSortKeyPartInputVariable = i => $"sortKey[{sortKeyPartRangesVariable}[{i}]]";
+                    getSortKeyPartInputVariable = indexExpr => $"sortKey[{sortKeyPartRangesVariable}[{indexExpr}]]";
                 }
 
                 var propertyNameCounts = partitionKeyParts.Concat(sortKeyParts).OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
@@ -429,20 +429,20 @@ public sealed partial class SourceGenerator
         }
 
         private static void WriteParsePropertiesImplementation(
-            SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow, string? inputPartCountVariable = null)
+            SourceWriter writer, List<KeyPart> parts, Func<string, string> getPartInputVariable, bool shouldThrow, string? inputPartCountVariable = null)
         {
             var propertyNameCounts = parts.OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
             WriteParsePropertiesImplementation(writer, parts, getPartInputVariable, shouldThrow, propertyNameCounts, inputPartCountVariable);
         }
 
         private static void WriteParsePropertiesImplementation(
-            SourceWriter writer, List<KeyPart> parts, Func<int, string> getPartInputVariable, bool shouldThrow, Dictionary<string, int> propertyNameCounts, string? inputPartCountVariable = null)
+            SourceWriter writer, List<KeyPart> parts, Func<string, string> getPartInputVariable, bool shouldThrow, Dictionary<string, int> propertyNameCounts, string? inputPartCountVariable = null)
         {
             var valueParts = parts.OfType<ValueKeyPart>().ToArray();
             for (int i = 0; i < valueParts.Length; i++)
             {
                 var valueKeyPart = valueParts[i];
-                string partInputVariable = getPartInputVariable(i);
+                string partInputVariable = getPartInputVariable($"{i}");
 
                 if (valueKeyPart is ConstantKeyPart c)
                 {
@@ -546,10 +546,7 @@ public sealed partial class SourceGenerator
 
                     writer.StartBlock($"for (int ri = {valuePartIndex}; ri < {inputPartCountVariable}; ri++)");
 
-                    // Derive the access expression from getPartInputVariable pattern.
-                    // getPartInputVariable(i) produces something like "primaryKey[primaryKeyPartRanges[i]]"
-                    // We need "primaryKey[primaryKeyPartRanges[ri]]"
-                    string riAccess = getPartInputVariable(valuePartIndex).Replace($"[{valuePartIndex}]", "[ri]");
+                    string riAccess = getPartInputVariable("ri");
 
                     WriteRepeatingItemParse(repeatingPart, riAccess, itemVar, listVar);
 
@@ -559,7 +556,7 @@ public sealed partial class SourceGenerator
                 else
                 {
                     // Different separator: sub-split the part by the repeating separator
-                    string partInputVariable = getPartInputVariable(valuePartIndex);
+                    string partInputVariable = getPartInputVariable($"{valuePartIndex}");
                     string repeatingRangesVar = $"{camelCaseName}Ranges";
                     string repeatingCountVar = $"{camelCaseName}Count";
 
