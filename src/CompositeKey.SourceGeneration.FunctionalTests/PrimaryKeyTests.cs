@@ -823,4 +823,361 @@ public static class PrimaryKeyTests
     ];
 
     #endregion
+
+    #region RepeatingEnumPrimaryKey
+
+    [Fact]
+    public static void RepeatingEnumPrimaryKey_RoundTripToStringAndParse_ShouldResultInEquivalentKey()
+    {
+        var primaryKey = new RepeatingEnumPrimaryKey([RepeatingEnumPrimaryKey.ItemType.Alpha, RepeatingEnumPrimaryKey.ItemType.Beta, RepeatingEnumPrimaryKey.ItemType.Gamma]);
+
+        var result = RepeatingEnumPrimaryKey.Parse(primaryKey.ToString());
+
+        result.ShouldNotBeNull();
+        result.Items.ShouldBe(primaryKey.Items);
+    }
+
+    [Fact]
+    public static void RepeatingEnumPrimaryKey_ToString_ShouldReturnCorrectlyFormattedString()
+    {
+        var primaryKey = new RepeatingEnumPrimaryKey([RepeatingEnumPrimaryKey.ItemType.Alpha, RepeatingEnumPrimaryKey.ItemType.Beta]);
+
+        string result = primaryKey.ToString();
+
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe("ITEMS#Alpha,Beta");
+    }
+
+    [Fact]
+    public static void RepeatingEnumPrimaryKey_Parse_WithValidKey_ShouldReturnCorrectlyParsedRecord()
+    {
+        var result = RepeatingEnumPrimaryKey.Parse("ITEMS#Alpha,Beta,Gamma");
+
+        result.ShouldNotBeNull();
+        result.Items.Count.ShouldBe(3);
+        result.Items[0].ShouldBe(RepeatingEnumPrimaryKey.ItemType.Alpha);
+        result.Items[1].ShouldBe(RepeatingEnumPrimaryKey.ItemType.Beta);
+        result.Items[2].ShouldBe(RepeatingEnumPrimaryKey.ItemType.Gamma);
+    }
+
+    [Fact]
+    public static void RepeatingEnumPrimaryKey_Parse_WithSingleItem_ShouldReturnCorrectlyParsedRecord()
+    {
+        var result = RepeatingEnumPrimaryKey.Parse("ITEMS#Delta");
+
+        result.ShouldNotBeNull();
+        result.Items.Count.ShouldBe(1);
+        result.Items[0].ShouldBe(RepeatingEnumPrimaryKey.ItemType.Delta);
+    }
+
+    [Theory, MemberData(nameof(RepeatingEnumPrimaryKey_InvalidInputs))]
+    public static void RepeatingEnumPrimaryKey_Parse_WithInvalidKey_ShouldThrowFormatException(string input)
+    {
+        var act = () => RepeatingEnumPrimaryKey.Parse(input);
+        act.ShouldThrow<FormatException>();
+    }
+
+    [Fact]
+    public static void RepeatingEnumPrimaryKey_TryParse_WithValidKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord()
+    {
+        RepeatingEnumPrimaryKey.TryParse("ITEMS#Alpha,Beta", out var result).ShouldBeTrue();
+
+        result.ShouldNotBeNull();
+        result.Items.Count.ShouldBe(2);
+        result.Items[0].ShouldBe(RepeatingEnumPrimaryKey.ItemType.Alpha);
+        result.Items[1].ShouldBe(RepeatingEnumPrimaryKey.ItemType.Beta);
+    }
+
+    [Theory, MemberData(nameof(RepeatingEnumPrimaryKey_InvalidInputs))]
+    public static void RepeatingEnumPrimaryKey_TryParse_WithInvalidKey_ShouldReturnFalse(string input)
+    {
+        RepeatingEnumPrimaryKey.TryParse(input, out var result).ShouldBeFalse();
+
+        result.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    public static void RepeatingEnumPrimaryKey_ToPartitionKeyString_WithSpecificPartIndex_ShouldReturnCorrectlyFormattedString(
+        int throughPartIndex, bool includeTrailingDelimiter)
+    {
+        var primaryKey = new RepeatingEnumPrimaryKey([RepeatingEnumPrimaryKey.ItemType.Alpha, RepeatingEnumPrimaryKey.ItemType.Beta, RepeatingEnumPrimaryKey.ItemType.Gamma]);
+
+        string result = primaryKey.ToPartitionKeyString(throughPartIndex, includeTrailingDelimiter);
+
+        result.ShouldNotBeNullOrEmpty();
+
+        string expected = throughPartIndex switch
+        {
+            0 when !includeTrailingDelimiter => "ITEMS",
+            0 when includeTrailingDelimiter => "ITEMS#",
+            1 when !includeTrailingDelimiter => "ITEMS#Alpha",
+            1 when includeTrailingDelimiter => "ITEMS#Alpha,",
+            2 => "ITEMS#Alpha,Beta",
+            _ => throw new InvalidOperationException()
+        };
+
+        result.ShouldBe(expected);
+    }
+
+    public static object[][] RepeatingEnumPrimaryKey_InvalidInputs() =>
+    [
+        [""],
+        ["ITEMS"],
+        ["WRONG#Alpha,Beta"],
+        ["ITEMS#InvalidValue"],
+        ["ITEMS#"]
+    ];
+
+    #endregion
+
+    #region RepeatingIntPrimaryKey
+
+    [Fact]
+    public static void RepeatingIntPrimaryKey_RoundTripToStringAndParse_ShouldResultInEquivalentKey()
+    {
+        var primaryKey = new RepeatingIntPrimaryKey([10, 20, 30]);
+
+        var result = RepeatingIntPrimaryKey.Parse(primaryKey.ToString());
+
+        result.ShouldNotBeNull();
+        result.Scores.ShouldBe(primaryKey.Scores);
+    }
+
+    [Fact]
+    public static void RepeatingIntPrimaryKey_ToString_ShouldReturnCorrectlyFormattedString()
+    {
+        var primaryKey = new RepeatingIntPrimaryKey([10, 20]);
+
+        string result = primaryKey.ToString();
+
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe("SCORES#10,20");
+    }
+
+    [Fact]
+    public static void RepeatingIntPrimaryKey_Parse_WithValidKey_ShouldReturnCorrectlyParsedRecord()
+    {
+        var result = RepeatingIntPrimaryKey.Parse("SCORES#1,2,3");
+
+        result.ShouldNotBeNull();
+        result.Scores.Count.ShouldBe(3);
+        result.Scores[0].ShouldBe(1);
+        result.Scores[1].ShouldBe(2);
+        result.Scores[2].ShouldBe(3);
+    }
+
+    [Fact]
+    public static void RepeatingIntPrimaryKey_Parse_WithSingleItem_ShouldReturnCorrectlyParsedRecord()
+    {
+        var result = RepeatingIntPrimaryKey.Parse("SCORES#42");
+
+        result.ShouldNotBeNull();
+        result.Scores.Count.ShouldBe(1);
+        result.Scores[0].ShouldBe(42);
+    }
+
+    [Theory, MemberData(nameof(RepeatingIntPrimaryKey_InvalidInputs))]
+    public static void RepeatingIntPrimaryKey_Parse_WithInvalidKey_ShouldThrowFormatException(string input)
+    {
+        var act = () => RepeatingIntPrimaryKey.Parse(input);
+        act.ShouldThrow<FormatException>();
+    }
+
+    [Fact]
+    public static void RepeatingIntPrimaryKey_TryParse_WithValidKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord()
+    {
+        RepeatingIntPrimaryKey.TryParse("SCORES#10,20", out var result).ShouldBeTrue();
+
+        result.ShouldNotBeNull();
+        result.Scores.Count.ShouldBe(2);
+        result.Scores[0].ShouldBe(10);
+        result.Scores[1].ShouldBe(20);
+    }
+
+    [Theory, MemberData(nameof(RepeatingIntPrimaryKey_InvalidInputs))]
+    public static void RepeatingIntPrimaryKey_TryParse_WithInvalidKey_ShouldReturnFalse(string input)
+    {
+        RepeatingIntPrimaryKey.TryParse(input, out var result).ShouldBeFalse();
+
+        result.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    public static void RepeatingIntPrimaryKey_ToPartitionKeyString_WithSpecificPartIndex_ShouldReturnCorrectlyFormattedString(
+        int throughPartIndex, bool includeTrailingDelimiter)
+    {
+        var primaryKey = new RepeatingIntPrimaryKey([10, 20, 30]);
+
+        string result = primaryKey.ToPartitionKeyString(throughPartIndex, includeTrailingDelimiter);
+
+        result.ShouldNotBeNullOrEmpty();
+
+        string expected = throughPartIndex switch
+        {
+            0 when !includeTrailingDelimiter => "SCORES",
+            0 when includeTrailingDelimiter => "SCORES#",
+            1 when !includeTrailingDelimiter => "SCORES#10",
+            1 when includeTrailingDelimiter => "SCORES#10,",
+            2 => "SCORES#10,20",
+            _ => throw new InvalidOperationException()
+        };
+
+        result.ShouldBe(expected);
+    }
+
+    public static object[][] RepeatingIntPrimaryKey_InvalidInputs() =>
+    [
+        [""],
+        ["SCORES"],
+        ["WRONG#1,2,3"],
+        ["SCORES#abc"],
+        ["SCORES#"]
+    ];
+
+    #endregion
+
+    #region ImmutableArrayPrimaryKey
+
+    [Fact]
+    public static void ImmutableArrayPrimaryKey_RoundTripToStringAndParse_ShouldResultInEquivalentKey()
+    {
+        var primaryKey = new ImmutableArrayPrimaryKey([Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()]);
+
+        var result = ImmutableArrayPrimaryKey.Parse(primaryKey.ToString());
+
+        result.ShouldNotBeNull();
+        result.NodeIds.ShouldBe(primaryKey.NodeIds);
+    }
+
+    [Fact]
+    public static void ImmutableArrayPrimaryKey_ToString_ShouldReturnCorrectlyFormattedString()
+    {
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+        var primaryKey = new ImmutableArrayPrimaryKey([id1, id2]);
+
+        string result = primaryKey.ToString();
+
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"NODES#{id1}#{id2}");
+    }
+
+    [Fact]
+    public static void ImmutableArrayPrimaryKey_ToString_WithSingleItem_ShouldReturnCorrectlyFormattedString()
+    {
+        var id = Guid.NewGuid();
+        var primaryKey = new ImmutableArrayPrimaryKey([id]);
+
+        string result = primaryKey.ToString();
+
+        result.ShouldNotBeNullOrEmpty();
+        result.ShouldBe($"NODES#{id}");
+    }
+
+    [Fact]
+    public static void ImmutableArrayPrimaryKey_Parse_WithValidKey_ShouldReturnCorrectlyParsedRecord()
+    {
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+        var id3 = Guid.NewGuid();
+
+        var result = ImmutableArrayPrimaryKey.Parse($"NODES#{id1}#{id2}#{id3}");
+
+        result.ShouldNotBeNull();
+        result.NodeIds.Length.ShouldBe(3);
+        result.NodeIds[0].ShouldBe(id1);
+        result.NodeIds[1].ShouldBe(id2);
+        result.NodeIds[2].ShouldBe(id3);
+    }
+
+    [Fact]
+    public static void ImmutableArrayPrimaryKey_Parse_WithSingleItem_ShouldReturnCorrectlyParsedRecord()
+    {
+        var id = Guid.NewGuid();
+
+        var result = ImmutableArrayPrimaryKey.Parse($"NODES#{id}");
+
+        result.ShouldNotBeNull();
+        result.NodeIds.Length.ShouldBe(1);
+        result.NodeIds[0].ShouldBe(id);
+    }
+
+    [Theory, MemberData(nameof(ImmutableArrayPrimaryKey_InvalidInputs))]
+    public static void ImmutableArrayPrimaryKey_Parse_WithInvalidKey_ShouldThrowFormatException(string input)
+    {
+        var act = () => ImmutableArrayPrimaryKey.Parse(input);
+        act.ShouldThrow<FormatException>();
+    }
+
+    [Fact]
+    public static void ImmutableArrayPrimaryKey_TryParse_WithValidKey_ShouldReturnTrueAndOutputCorrectlyParsedRecord()
+    {
+        var id1 = Guid.NewGuid();
+        var id2 = Guid.NewGuid();
+
+        ImmutableArrayPrimaryKey.TryParse($"NODES#{id1}#{id2}", out var result).ShouldBeTrue();
+
+        result.ShouldNotBeNull();
+        result.NodeIds.Length.ShouldBe(2);
+        result.NodeIds[0].ShouldBe(id1);
+        result.NodeIds[1].ShouldBe(id2);
+    }
+
+    [Theory, MemberData(nameof(ImmutableArrayPrimaryKey_InvalidInputs))]
+    public static void ImmutableArrayPrimaryKey_TryParse_WithInvalidKey_ShouldReturnFalse(string input)
+    {
+        ImmutableArrayPrimaryKey.TryParse(input, out var result).ShouldBeFalse();
+
+        result.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    public static void ImmutableArrayPrimaryKey_ToPartitionKeyString_WithSpecificPartIndex_ShouldReturnCorrectlyFormattedString(
+        int throughPartIndex, bool includeTrailingDelimiter)
+    {
+        var ids = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+        var primaryKey = new ImmutableArrayPrimaryKey([ids[0], ids[1], ids[2]]);
+
+        string result = primaryKey.ToPartitionKeyString(throughPartIndex, includeTrailingDelimiter);
+
+        result.ShouldNotBeNullOrEmpty();
+
+        string expected = throughPartIndex switch
+        {
+            0 when !includeTrailingDelimiter => "NODES",
+            0 when includeTrailingDelimiter => "NODES#",
+            1 when !includeTrailingDelimiter => $"NODES#{ids[0]}",
+            1 when includeTrailingDelimiter => $"NODES#{ids[0]}#",
+            2 => $"NODES#{ids[0]}#{ids[1]}",
+            _ => throw new InvalidOperationException()
+        };
+
+        result.ShouldBe(expected);
+    }
+
+    public static object[][] ImmutableArrayPrimaryKey_InvalidInputs() =>
+    [
+        [""],
+        ["NODES"],
+        ["WRONG#15cd670a-89c7-4c7f-8245-507ec9e41c8b"],
+        ["NODES#not-a-guid"],
+        ["NODES#"]
+    ];
+
+    #endregion
 }

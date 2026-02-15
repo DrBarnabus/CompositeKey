@@ -37,3 +37,15 @@ public sealed partial record TaggedEntityKey(string Type, List<string> Tags);
 
 [CompositeKey("{TenantId}#{LocationId:D...#}")]
 public sealed partial record FastPathRepeatingKey(Guid TenantId, IReadOnlyList<Guid> LocationId);
+
+[CompositeKey("ITEMS#{Items...,}")]
+public sealed partial record RepeatingEnumPrimaryKey(IReadOnlyList<RepeatingEnumPrimaryKey.ItemType> Items)
+{
+    public enum ItemType { Alpha, Beta, Gamma, Delta }
+}
+
+[CompositeKey("SCORES#{Scores...,}")]
+public sealed partial record RepeatingIntPrimaryKey(IReadOnlyList<int> Scores);
+
+[CompositeKey("NODES#{NodeIds:D...#}")]
+public sealed partial record ImmutableArrayPrimaryKey(ImmutableArray<Guid> NodeIds);

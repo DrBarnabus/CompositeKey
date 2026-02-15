@@ -629,6 +629,29 @@ public static class PropertyAnalyzerTests
         }
 
         [Fact]
+        public async Task RepeatingPropertyWithImmutableArrayType_ProducesNoDiagnostics()
+        {
+            // Arrange
+            var test = new PropertyAnalyzerTest
+            {
+                TestCode = """
+                    using System;
+                    using System.Collections.Immutable;
+                    using CompositeKey;
+
+                    [CompositeKey("PREFIX_{Ids:D...#}")]
+                    public partial record TestKey
+                    {
+                        public ImmutableArray<Guid> Ids { get; set; }
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
         public async Task RepeatingTypeWithoutRepeatingSyntax_ReportsError()
         {
             // Arrange

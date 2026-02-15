@@ -870,6 +870,29 @@ public static class TemplateValidationTests
         }
 
         [Fact]
+        public void CompositeKey_RepeatingPropertyNotLastInPartitionKey_ShouldReturnFailure()
+        {
+            // Arrange - repeating property in partition key section, not at the end
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.RepeatingProperty("Tags", ','),
+                TemplateToken.Delimiter('-'),
+                TemplateToken.Constant("SUFFIX"),
+                TemplateToken.PrimaryDelimiter('#'),
+                TemplateToken.Property("SortKey")
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyPosition(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Tags");
+        }
+
+        [Fact]
         public void CompositeKey_RepeatingPropertyNotLastInSortKey_ShouldReturnFailure()
         {
             // Arrange

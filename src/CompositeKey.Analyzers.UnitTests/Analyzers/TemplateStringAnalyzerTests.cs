@@ -795,6 +795,29 @@ public static class TemplateStringAnalyzerTests
         }
 
         [Fact]
+        public async Task MultipleRepeatingPropertiesInSameSection_ReportsError()
+        {
+            // Arrange
+            var test = new TemplateStringAnalyzerTest
+            {
+                TestCode = """
+                    using System.Collections.Generic;
+                    using CompositeKey;
+
+                    [CompositeKey({|COMPOSITE0011:"{Tags...#}-{Items...,}"|})]
+                    public partial record TestKey
+                    {
+                        public List<string> Tags { get; set; } = [];
+                        public List<string> Items { get; set; } = [];
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
         public async Task RepeatingPropertyNotAtEnd_ReportsError()
         {
             // Arrange
