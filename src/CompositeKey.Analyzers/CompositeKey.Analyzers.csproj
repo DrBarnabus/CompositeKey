@@ -23,7 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CompositeKey.Analyzers.Common\CompositeKey.Analyzers.Common.csproj" PrivateAssets="all" ReferenceOutputAssembly="true" />
+        <ProjectReference Include="..\CompositeKey.Analyzers.Common\CompositeKey.Analyzers.Common.csproj" PrivateAssets="all" ReferenceOutputAssembly="true" GlobalPropertiesToRemove="TargetFramework" />
     </ItemGroup>
 
     <Target Name="GetPackAsAnalyzerFiles" DependsOnTargets="$(GenerateNuspecDependsOn);GetCommonAssemblyPath" Returns="@(PackAsAnalyzerFile)">
