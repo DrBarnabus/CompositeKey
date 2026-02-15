@@ -3,6 +3,13 @@
 All notable changes to this project will be automatically documented in this file.
 
 
+## [1.6.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.5.0...v1.6.0) (2026-02-15)
+
+
+### Features
+
+* Add repeating section support for collection types ([#36](https://github.com/DrBarnabus/CompositeKey/issues/36)) ([7675481](https://github.com/DrBarnabus/CompositeKey/commit/7675481fa523de355192df4062a4b23df94cb5f9))
+
 ## [1.5.0](https://github.com/DrBarnabus/CompositeKey/compare/v1.4.0...v1.5.0) (2025-11-16)
 
 
