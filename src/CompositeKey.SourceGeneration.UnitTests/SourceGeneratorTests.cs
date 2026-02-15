@@ -547,6 +547,76 @@ public static class SourceGeneratorTests
     }
 
     [Fact]
+    public static void RepeatingPropertyKey_ShouldSuccessfullyParseModel()
+    {
+        var compilation = CompilationHelper.CreateCompilationWithRepeatingPropertyKey();
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        // Verify the source generator parsed the model (no source generator diagnostics)
+        result.Diagnostics.Where(d => d.Severity > DiagnosticSeverity.Info).ShouldBeEmpty();
+
+        // Verify at least one generation spec was created
+        result.GenerationSpecs.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public static void RepeatingPropertyCompositeKey_ShouldSuccessfullyParseModel()
+    {
+        var compilation = CompilationHelper.CreateCompilationWithRepeatingPropertyCompositeKey();
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        // Verify the source generator parsed the model (no source generator diagnostics)
+        result.Diagnostics.Where(d => d.Severity > DiagnosticSeverity.Info).ShouldBeEmpty();
+
+        // Verify at least one generation spec was created
+        result.GenerationSpecs.ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public static void NonRepeatingTypeWithRepeatingSyntax_ShouldFailCompilation()
+    {
+        const string Source = """
+                              using System;
+                              using CompositeKey;
+
+                              namespace UnitTests;
+
+                              [CompositeKey("TAG_{Name...#}")]
+                              public partial record InvalidKey(string Name);
+                              """;
+
+        var compilation = CompilationHelper.CreateCompilation(Source);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        result.Diagnostics.ShouldNotBeEmpty();
+        result.Diagnostics.ShouldContain(d => d.Id == "COMPOSITE0009");
+    }
+
+    [Fact]
+    public static void RepeatingTypeWithoutRepeatingSyntax_ShouldFailCompilation()
+    {
+        const string Source = """
+                              using System;
+                              using System.Collections.Generic;
+                              using CompositeKey;
+
+                              namespace UnitTests;
+
+                              [CompositeKey("TAG_{Tags}")]
+                              public partial record InvalidKey
+                              {
+                                  public List<string> Tags { get; set; } = [];
+                              }
+                              """;
+
+        var compilation = CompilationHelper.CreateCompilation(Source);
+        var result = CompilationHelper.RunSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        result.Diagnostics.ShouldNotBeEmpty();
+        result.Diagnostics.ShouldContain(d => d.Id == "COMPOSITE0010");
+    }
+
+    [Fact]
     public static void KeyWithSamePropertyUsedTwice_ShouldSuccessfullyCompile()
     {
         var compilation = CompilationHelper.CreateCompilationWithSamePropertyUsedTwice();

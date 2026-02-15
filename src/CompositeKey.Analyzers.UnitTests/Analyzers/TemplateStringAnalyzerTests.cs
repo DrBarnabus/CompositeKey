@@ -745,6 +745,103 @@ public static class TemplateStringAnalyzerTests
     }
 
     /// <summary>
+    /// Tests for repeating property position validation (COMPOSITE0011).
+    /// </summary>
+    public class RepeatingPropertyPositionValidation
+    {
+        [Fact]
+        public async Task RepeatingPropertyAtEnd_ProducesNoDiagnostics()
+        {
+            // Arrange
+            var test = new TemplateStringAnalyzerTest
+            {
+                TestCode = """
+                    using System.Collections.Generic;
+                    using CompositeKey;
+
+                    [CompositeKey("PREFIX_{Tags...#}")]
+                    public partial record TestKey
+                    {
+                        public List<string> Tags { get; set; } = [];
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
+        public async Task RepeatingPropertyInCompositeKeySortKeyAtEnd_ProducesNoDiagnostics()
+        {
+            // Arrange
+            var test = new TemplateStringAnalyzerTest
+            {
+                TestCode = """
+                    using System.Collections.Generic;
+                    using CompositeKey;
+
+                    [CompositeKey("{UserId}|TAG_{Tags...#}", PrimaryKeySeparator = '|')]
+                    public partial record TestKey
+                    {
+                        public string UserId { get; set; } = "";
+                        public List<string> Tags { get; set; } = [];
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
+        public async Task MultipleRepeatingPropertiesInSameSection_ReportsError()
+        {
+            // Arrange
+            var test = new TemplateStringAnalyzerTest
+            {
+                TestCode = """
+                    using System.Collections.Generic;
+                    using CompositeKey;
+
+                    [CompositeKey({|COMPOSITE0011:"{Tags...#}-{Items...,}"|})]
+                    public partial record TestKey
+                    {
+                        public List<string> Tags { get; set; } = [];
+                        public List<string> Items { get; set; } = [];
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
+        public async Task RepeatingPropertyNotAtEnd_ReportsError()
+        {
+            // Arrange
+            var test = new TemplateStringAnalyzerTest
+            {
+                TestCode = """
+                    using System.Collections.Generic;
+                    using CompositeKey;
+
+                    [CompositeKey({|COMPOSITE0011:"{Tags...#}_{Suffix}"|})]
+                    public partial record TestKey
+                    {
+                        public List<string> Tags { get; set; } = [];
+                        public string Suffix { get; set; } = "";
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+    }
+
+    /// <summary>
     /// Tests for analyzer public API and metadata.
     /// </summary>
     public class AnalyzerApiTests
@@ -760,11 +857,12 @@ public static class TemplateStringAnalyzerTests
 
             // Assert
             supportedDiagnostics.ShouldNotBeEmpty();
-            supportedDiagnostics.Length.ShouldBe(2);
+            supportedDiagnostics.Length.ShouldBe(3);
 
             var diagnosticIds = supportedDiagnostics.Select(d => d.Id).ToList();
             diagnosticIds.ShouldContain("COMPOSITE0005"); // EmptyOrInvalidTemplateString
             diagnosticIds.ShouldContain("COMPOSITE0006"); // PrimaryKeySeparatorMissingFromTemplateString
+            diagnosticIds.ShouldContain("COMPOSITE0011"); // RepeatingPropertyMustBeLastPart
         }
 
         [Fact]

@@ -413,6 +413,139 @@ public static class PropertyValidationTests
         }
     }
 
+    public class RepeatingPropertyTypeValidation
+    {
+        [Fact]
+        public void ListType_IsRepeatingType()
+        {
+            // Arrange
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
+                TypeName: "System.Collections.Generic.List<System.Guid>",
+                IsList: true,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Assert
+            repeatingTypeInfo.IsRepeatingType.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void ReadOnlyListType_IsRepeatingType()
+        {
+            // Arrange
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
+                TypeName: "System.Collections.Generic.IReadOnlyList<string>",
+                IsList: false,
+                IsReadOnlyList: true,
+                IsImmutableArray: false);
+
+            // Assert
+            repeatingTypeInfo.IsRepeatingType.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void ImmutableArrayType_IsRepeatingType()
+        {
+            // Arrange
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
+                TypeName: "System.Collections.Immutable.ImmutableArray<int>",
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: true);
+
+            // Assert
+            repeatingTypeInfo.IsRepeatingType.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void NonRepeatingType_IsNotRepeatingType()
+        {
+            // Arrange
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
+                TypeName: "System.String",
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Assert
+            repeatingTypeInfo.IsRepeatingType.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithRepeatingType_ShouldReturnSuccess()
+        {
+            // Arrange
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
+                TypeName: "System.Collections.Generic.List<System.Guid>",
+                IsList: true,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Act
+            var result = PropertyValidation.ValidateRepeatingPropertyType("Tags", repeatingTypeInfo);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithNonRepeatingType_ShouldReturnFailure()
+        {
+            // Arrange
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
+                TypeName: "System.String",
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Act
+            var result = PropertyValidation.ValidateRepeatingPropertyType("Name", repeatingTypeInfo);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Name");
+        }
+
+        [Fact]
+        public void NonRepeatingPropertyWithRepeatingType_ShouldReturnFailure()
+        {
+            // Arrange
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
+                TypeName: "System.Collections.Generic.List<System.Guid>",
+                IsList: true,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Act
+            var result = PropertyValidation.ValidateNonRepeatingPropertyType("Tags", repeatingTypeInfo);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Tags");
+        }
+
+        [Fact]
+        public void NonRepeatingPropertyWithNonRepeatingType_ShouldReturnSuccess()
+        {
+            // Arrange
+            var repeatingTypeInfo = new PropertyValidation.RepeatingPropertyTypeInfo(
+                TypeName: "System.String",
+                IsList: false,
+                IsReadOnlyList: false,
+                IsImmutableArray: false);
+
+            // Act
+            var result = PropertyValidation.ValidateNonRepeatingPropertyType("Name", repeatingTypeInfo);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+    }
+
     public class FormattedLengthCalculation
     {
         [Theory]

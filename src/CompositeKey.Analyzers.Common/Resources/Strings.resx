@@ -66,4 +66,22 @@
     <data name="PropertyHasInvalidOrUnsupportedFormatMessageFormat" xml:space="preserve">
         <value>The property '{0}' uses format '{1}' which is either invalid for the properties type or unsupported by the 'CompositeKey' source generator.</value>
     </data>
+    <data name="RepeatingPropertyMustUseCollectionTypeTitle" xml:space="preserve">
+        <value>Repeating property must use a collection type.</value>
+    </data>
+    <data name="RepeatingPropertyMustUseCollectionTypeMessageFormat" xml:space="preserve">
+        <value>The property '{0}' uses repeating syntax but is not a supported collection type (List&lt;T&gt;, IReadOnlyList&lt;T&gt;, or ImmutableArray&lt;T&gt;).</value>
+    </data>
+    <data name="RepeatingTypeMustUseRepeatingSyntaxTitle" xml:space="preserve">
+        <value>Repeating type must use repeating syntax.</value>
+    </data>
+    <data name="RepeatingTypeMustUseRepeatingSyntaxMessageFormat" xml:space="preserve">
+        <value>The property '{0}' is a repeating type but does not use repeating syntax ('...separator') in the template.</value>
+    </data>
+    <data name="RepeatingPropertyMustBeLastPartTitle" xml:space="preserve">
+        <value>Repeating property must be the last part in its key section.</value>
+    </data>
+    <data name="RepeatingPropertyMustBeLastPartMessageFormat" xml:space="preserve">
+        <value>The repeating property '{0}' must be the last value part in its key section.</value>
+    </data>
 </root>

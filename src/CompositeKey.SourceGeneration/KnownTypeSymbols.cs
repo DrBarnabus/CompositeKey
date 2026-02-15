@@ -10,6 +10,9 @@ internal sealed class KnownTypeSymbols(Compilation compilation)
     private Option<INamedTypeSymbol?> _setsRequiredMembersAttributeType;
     private Option<INamedTypeSymbol?> _guidType;
     private Option<INamedTypeSymbol?> _stringType;
+    private Option<INamedTypeSymbol?> _listType;
+    private Option<INamedTypeSymbol?> _readOnlyListType;
+    private Option<INamedTypeSymbol?> _immutableArrayType;
 
     public Compilation Compilation { get; } = compilation;
 
@@ -22,6 +25,12 @@ internal sealed class KnownTypeSymbols(Compilation compilation)
     public INamedTypeSymbol? GuidType => GetOrResolveType(typeof(Guid), ref _guidType);
 
     public INamedTypeSymbol? StringType => GetOrResolveType(typeof(string), ref _stringType);
+
+    public INamedTypeSymbol? ListType => GetOrResolveType("System.Collections.Generic.List`1", ref _listType);
+
+    public INamedTypeSymbol? ReadOnlyListType => GetOrResolveType("System.Collections.Generic.IReadOnlyList`1", ref _readOnlyListType);
+
+    public INamedTypeSymbol? ImmutableArrayType => GetOrResolveType("System.Collections.Immutable.ImmutableArray`1", ref _immutableArrayType);
 
     private INamedTypeSymbol? GetOrResolveType(Type type, ref Option<INamedTypeSymbol?> field) => GetOrResolveType(type.FullName!, ref field);
 

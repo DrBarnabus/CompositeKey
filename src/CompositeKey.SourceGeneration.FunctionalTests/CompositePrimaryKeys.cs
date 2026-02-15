@@ -12,3 +12,6 @@ public sealed partial record CompositePrimaryKey(
 
 [CompositeKey("{Id}#{Id}", PrimaryKeySeparator = '#')]
 public sealed partial record CompositePrimaryKeyWithSamePropertyUsedTwice(Guid Id);
+
+[CompositeKey("{TenantId}|LOCATION#{LocationId...#}", PrimaryKeySeparator = '|')]
+public sealed partial record CompositeWithRepeatingSort(Guid TenantId, IReadOnlyList<Guid> LocationId);

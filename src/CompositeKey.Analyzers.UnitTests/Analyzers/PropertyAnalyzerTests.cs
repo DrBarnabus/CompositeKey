@@ -559,6 +559,122 @@ public static class PropertyAnalyzerTests
     }
 
     /// <summary>
+    /// Tests for repeating property collection type validation (COMPOSITE0009/COMPOSITE0010).
+    /// </summary>
+    public class RepeatingPropertyValidation
+    {
+        [Fact]
+        public async Task RepeatingPropertyWithListType_ProducesNoDiagnostics()
+        {
+            // Arrange
+            var test = new PropertyAnalyzerTest
+            {
+                TestCode = """
+                    using System.Collections.Generic;
+                    using CompositeKey;
+
+                    [CompositeKey("PREFIX_{Tags...#}")]
+                    public partial record TaggedKey
+                    {
+                        public List<string> Tags { get; set; } = [];
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
+        public async Task RepeatingPropertyWithIReadOnlyListType_ProducesNoDiagnostics()
+        {
+            // Arrange
+            var test = new PropertyAnalyzerTest
+            {
+                TestCode = """
+                    using System.Collections.Generic;
+                    using CompositeKey;
+
+                    [CompositeKey("PREFIX_{Tags...#}")]
+                    public partial record TaggedKey
+                    {
+                        public IReadOnlyList<string> Tags { get; set; } = [];
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
+        public async Task RepeatingPropertyWithNonCollectionType_ReportsError()
+        {
+            // Arrange
+            var test = new PropertyAnalyzerTest
+            {
+                TestCode = """
+                    using CompositeKey;
+
+                    [CompositeKey("PREFIX_{Name...#}")]
+                    public partial record InvalidKey
+                    {
+                        public string {|COMPOSITE0009:Name|} { get; set; } = "";
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
+        public async Task RepeatingPropertyWithImmutableArrayType_ProducesNoDiagnostics()
+        {
+            // Arrange
+            var test = new PropertyAnalyzerTest
+            {
+                TestCode = """
+                    using System;
+                    using System.Collections.Immutable;
+                    using CompositeKey;
+
+                    [CompositeKey("PREFIX_{Ids:D...#}")]
+                    public partial record TestKey
+                    {
+                        public ImmutableArray<Guid> Ids { get; set; }
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+
+        [Fact]
+        public async Task RepeatingTypeWithoutRepeatingSyntax_ReportsError()
+        {
+            // Arrange
+            var test = new PropertyAnalyzerTest
+            {
+                TestCode = """
+                    using System.Collections.Generic;
+                    using CompositeKey;
+
+                    [CompositeKey("PREFIX_{Tags}")]
+                    public partial record InvalidKey
+                    {
+                        public List<string> {|COMPOSITE0010:{|COMPOSITE0008:Tags|}|} { get; set; } = [];
+                    }
+                    """
+            };
+
+            // Act & Assert
+            await test.RunAsync();
+        }
+    }
+
+    /// <summary>
     /// Test fixture for PropertyAnalyzer using the analyzer test infrastructure.
     /// </summary>
     private sealed class PropertyAnalyzerTest : CompositeKeyAnalyzerTestBase<PropertyAnalyzer>;

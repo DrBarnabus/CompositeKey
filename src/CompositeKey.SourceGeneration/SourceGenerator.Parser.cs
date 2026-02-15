@@ -168,6 +168,7 @@ public sealed partial class SourceGenerator
                     PrimaryDelimiterTemplateToken pd => new PrimaryDelimiterKeyPart(pd.Value) { LengthRequired = 1 },
                     DelimiterTemplateToken d => new DelimiterKeyPart(d.Value) { LengthRequired = 1 },
                     PropertyTemplateToken p => ToPropertyKeyPart(p),
+                    RepeatingPropertyTemplateToken rp => ToRepeatingPropertyKeyPart(rp),
                     ConstantTemplateToken c => new ConstantKeyPart(c.Value) { LengthRequired = c.Value.Length },
                     _ => null
                 };
@@ -179,6 +180,51 @@ public sealed partial class SourceGenerator
                 }
 
                 keyParts.Add(keyPart);
+            }
+
+            // Validate: repeating type used without repeating syntax -> COMPOSITE0010
+            foreach (var keyPart in keyParts)
+            {
+                if (keyPart is PropertyKeyPart pkp && pkp.Property.CollectionType != CollectionType.None)
+                {
+                    ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, _location, pkp.Property.Name);
+                    return null;
+                }
+            }
+
+            // Validate: repeating property must be the last value part in its key section -> COMPOSITE0011
+            var valueParts = keyParts.Where(kp => kp is ValueKeyPart).ToList();
+            if (valueParts.Count > 0 && valueParts[^1] is not RepeatingPropertyKeyPart)
+            {
+                // Only report if there's a repeating part that isn't last
+                if (valueParts.Any(kp => kp is RepeatingPropertyKeyPart))
+                {
+                    var repeatingPart = valueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
+                    ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, _location, repeatingPart!.Property.Name);
+                    return null;
+                }
+            }
+
+            // For composite keys, also validate repeating position within each section
+            if (keyParts.Any(kp => kp is PrimaryDelimiterKeyPart))
+            {
+                int delimiterIndex = keyParts.FindIndex(kp => kp is PrimaryDelimiterKeyPart);
+
+                var partitionValueParts = keyParts.Take(delimiterIndex).Where(kp => kp is ValueKeyPart).ToList();
+                if (partitionValueParts.Count > 0 && partitionValueParts.Any(kp => kp is RepeatingPropertyKeyPart) && partitionValueParts[^1] is not RepeatingPropertyKeyPart)
+                {
+                    var repeatingPart = partitionValueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
+                    ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, _location, repeatingPart!.Property.Name);
+                    return null;
+                }
+
+                var sortValueParts = keyParts.Skip(delimiterIndex + 1).Where(kp => kp is ValueKeyPart).ToList();
+                if (sortValueParts.Count > 0 && sortValueParts.Any(kp => kp is RepeatingPropertyKeyPart) && sortValueParts[^1] is not RepeatingPropertyKeyPart)
+                {
+                    var repeatingPart = sortValueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
+                    ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, _location, repeatingPart!.Property.Name);
+                    return null;
+                }
             }
 
             return keyParts;
@@ -200,6 +246,13 @@ public sealed partial class SourceGenerator
 
                 propertiesUsedInKey.Add(property);
                 var (propertySpec, typeSymbol) = property;
+
+                // Repeating type properties must use repeating syntax
+                if (propertySpec.CollectionType != CollectionType.None)
+                {
+                    ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, _location, propertySpec.Name);
+                    return null;
+                }
 
                 var interfaces = typeSymbol.AllInterfaces;
                 bool isSpanParsable = interfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith("global::System.ISpanParsable"));
@@ -271,6 +324,102 @@ public sealed partial class SourceGenerator
                     ExactLengthRequirement = exactLengthRequirement
                 };
             }
+
+            RepeatingPropertyKeyPart? ToRepeatingPropertyKeyPart(RepeatingPropertyTemplateToken templateToken)
+            {
+                var availableProperties = properties
+                    .Select(p => new TemplateValidation.PropertyInfo(p.Spec.Name, p.Spec.HasGetter, p.Spec.HasSetter))
+                    .ToList();
+
+                var propertyValidation = TemplateValidation.ValidatePropertyReferences([templateToken], availableProperties);
+                if (!propertyValidation.IsSuccess)
+                {
+                    ReportDiagnostic(propertyValidation.Descriptor, _location, propertyValidation.MessageArgs);
+                    return null;
+                }
+
+                var property = properties.First(p => p.Spec.Name == templateToken.Name);
+                var (propertySpec, typeSymbol) = property;
+
+                // Validate that the property is a collection type
+                if (propertySpec.CollectionType == CollectionType.None)
+                {
+                    ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType, _location, propertySpec.Name);
+                    return null;
+                }
+
+                // Extract inner type from the collection
+                var namedTypeSymbol = (INamedTypeSymbol)typeSymbol;
+                var innerTypeSymbol = namedTypeSymbol.TypeArguments[0];
+
+                var innerInterfaces = innerTypeSymbol.AllInterfaces;
+                bool isSpanParsable = innerInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith("global::System.ISpanParsable"));
+                bool isSpanFormattable = innerInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Equals("global::System.ISpanFormattable"));
+
+                var innerTypeInfo = new PropertyValidation.PropertyTypeInfo(
+                    TypeName: innerTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    IsGuid: SymbolEqualityComparer.Default.Equals(innerTypeSymbol, _knownTypeSymbols.GuidType),
+                    IsString: SymbolEqualityComparer.Default.Equals(innerTypeSymbol, _knownTypeSymbols.StringType),
+                    IsEnum: innerTypeSymbol.TypeKind == TypeKind.Enum,
+                    IsSpanParsable: isSpanParsable,
+                    IsSpanFormattable: isSpanFormattable);
+
+                var formatValidation = PropertyValidation.ValidatePropertyFormat(
+                    propertySpec.Name,
+                    innerTypeInfo,
+                    templateToken.Format);
+
+                if (!formatValidation.IsSuccess)
+                {
+                    ReportDiagnostic(formatValidation.Descriptor, _location, formatValidation.MessageArgs);
+                    return null;
+                }
+
+                var typeCompatibility = PropertyValidation.ValidatePropertyTypeCompatibility(
+                    propertySpec.Name,
+                    innerTypeInfo);
+
+                if (!typeCompatibility.IsSuccess)
+                {
+                    throw new NotSupportedException($"Unsupported inner type '{innerTypeInfo.TypeName}' for repeating property '{propertySpec.Name}'");
+                }
+
+                propertiesUsedInKey.Add(property);
+
+                ParseType innerParseType;
+                FormatType innerFormatType;
+                string? format = templateToken.Format;
+
+                if (innerTypeInfo.IsGuid)
+                {
+                    innerParseType = ParseType.Guid;
+                    innerFormatType = FormatType.Guid;
+                    format = templateToken.Format?.ToLowerInvariant() ?? "d";
+                }
+                else if (innerTypeInfo.IsString)
+                {
+                    innerParseType = ParseType.String;
+                    innerFormatType = FormatType.String;
+                    format = null;
+                }
+                else if (innerTypeInfo.IsEnum)
+                {
+                    innerParseType = ParseType.Enum;
+                    innerFormatType = FormatType.Enum;
+                    format = templateToken.Format?.ToLowerInvariant() ?? "g";
+                }
+                else
+                {
+                    innerParseType = ParseType.SpanParsable;
+                    innerFormatType = FormatType.SpanFormattable;
+                }
+
+                return new RepeatingPropertyKeyPart(propertySpec, templateToken.Separator, format, innerParseType, innerFormatType, new TypeRef(innerTypeSymbol))
+                {
+                    LengthRequired = 1,
+                    ExactLengthRequirement = false
+                };
+            }
         }
 
         private static List<PropertyInitializerSpec>? ParsePropertyInitializers(
@@ -313,7 +462,7 @@ public sealed partial class SourceGenerator
             return propertyInitializers;
         }
 
-        private static List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> ParseProperties(INamedTypeSymbol typeSymbol)
+        private List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> ParseProperties(INamedTypeSymbol typeSymbol)
         {
             List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> properties = [];
             foreach (var propertySymbol in typeSymbol.GetMembers().OfType<IPropertySymbol>())
@@ -324,9 +473,34 @@ public sealed partial class SourceGenerator
                 if (propertySymbol.IsStatic || propertySymbol.Parameters.Length > 0)
                     continue;
 
+                // Detect collection types
+                var collectionType = CollectionType.None;
+                ITypeSymbol effectiveTypeSymbol = propertySymbol.Type;
+
+                if (propertySymbol.Type is INamedTypeSymbol namedType)
+                {
+                    var originalDefinition = namedType.OriginalDefinition;
+                    if (SymbolEqualityComparer.Default.Equals(originalDefinition, _knownTypeSymbols.ListType))
+                        collectionType = CollectionType.List;
+                    else if (SymbolEqualityComparer.Default.Equals(originalDefinition, _knownTypeSymbols.ReadOnlyListType))
+                        collectionType = CollectionType.IReadOnlyList;
+                    else if (SymbolEqualityComparer.Default.Equals(originalDefinition, _knownTypeSymbols.ImmutableArrayType))
+                        collectionType = CollectionType.ImmutableArray;
+                }
+
+                // For collection types, extract inner type for EnumSpec
                 EnumSpec? enumSpec = null;
-                if (propertySymbol.Type is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType)
-                    enumSpec = ExtractEnumDefinition(enumType);
+                if (collectionType != CollectionType.None)
+                {
+                    var innerType = ((INamedTypeSymbol)propertySymbol.Type).TypeArguments[0];
+                    if (innerType is INamedTypeSymbol { TypeKind: TypeKind.Enum } innerEnumType)
+                        enumSpec = ExtractEnumDefinition(innerEnumType);
+                }
+                else
+                {
+                    if (propertySymbol.Type is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType)
+                        enumSpec = ExtractEnumDefinition(enumType);
+                }
 
                 var propertySpec = new PropertySpec(
                     new TypeRef(propertySymbol.Type),
@@ -336,7 +510,8 @@ public sealed partial class SourceGenerator
                     propertySymbol.GetMethod is not null,
                     propertySymbol.SetMethod is not null,
                     propertySymbol.SetMethod is { IsInitOnly: true },
-                    enumSpec);
+                    enumSpec,
+                    collectionType);
 
                 properties.Add((propertySpec, propertySymbol.Type));
             }

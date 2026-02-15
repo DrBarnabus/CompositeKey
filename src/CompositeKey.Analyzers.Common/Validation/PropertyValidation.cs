@@ -40,6 +40,15 @@ public static class PropertyValidation
         bool HasGetter,
         bool HasSetter);
 
+    public record RepeatingPropertyTypeInfo(
+        string TypeName,
+        bool IsList,
+        bool IsReadOnlyList,
+        bool IsImmutableArray)
+    {
+        public bool IsRepeatingType => IsList || IsReadOnlyList || IsImmutableArray;
+    }
+
     /// <summary>
     /// Validates that a property has accessible getter and setter.
     /// </summary>
@@ -50,6 +59,40 @@ public static class PropertyValidation
             return PropertyValidationResult.Failure(
                 DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter,
                 property.Name);
+        }
+
+        return PropertyValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Validates that a property used with repeating syntax is a supported collection type.
+    /// </summary>
+    public static PropertyValidationResult ValidateRepeatingPropertyType(
+        string propertyName,
+        RepeatingPropertyTypeInfo repeatingTypeInfo)
+    {
+        if (!repeatingTypeInfo.IsRepeatingType)
+        {
+            return PropertyValidationResult.Failure(
+                DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType,
+                propertyName);
+        }
+
+        return PropertyValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Validates that a repeating type property uses repeating syntax.
+    /// </summary>
+    public static PropertyValidationResult ValidateNonRepeatingPropertyType(
+        string propertyName,
+        RepeatingPropertyTypeInfo repeatingTypeInfo)
+    {
+        if (repeatingTypeInfo.IsRepeatingType)
+        {
+            return PropertyValidationResult.Failure(
+                DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax,
+                propertyName);
         }
 
         return PropertyValidationResult.Success();

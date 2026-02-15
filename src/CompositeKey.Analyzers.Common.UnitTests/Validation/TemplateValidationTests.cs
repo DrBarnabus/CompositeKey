@@ -232,6 +232,75 @@ public static class TemplateValidationTests
             // Assert
             result.IsSuccess.ShouldBeTrue();
         }
+
+        [Fact]
+        public void RepeatingPropertyExistsWithGetterAndSetter_ShouldReturnSuccess()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Constant("PREFIX"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.RepeatingProperty("Tags", '#')
+            };
+
+            var availableProperties = new[]
+            {
+                new TemplateValidation.PropertyInfo("Tags", HasGetter: true, HasSetter: true)
+            };
+
+            // Act
+            var result = TemplateValidation.ValidatePropertyReferences(tokens, availableProperties.ToList());
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void RepeatingPropertyDoesNotExist_ShouldReturnFailure()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.RepeatingProperty("NonExistent", '#')
+            };
+
+            var availableProperties = new[]
+            {
+                new TemplateValidation.PropertyInfo("Tags", HasGetter: true, HasSetter: true)
+            };
+
+            // Act
+            var result = TemplateValidation.ValidatePropertyReferences(tokens, availableProperties.ToList());
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("NonExistent");
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithoutSetter_ShouldReturnFailure()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.RepeatingProperty("Tags", '#')
+            };
+
+            var availableProperties = new[]
+            {
+                new TemplateValidation.PropertyInfo("Tags", HasGetter: true, HasSetter: false)
+            };
+
+            // Act
+            var result = TemplateValidation.ValidatePropertyReferences(tokens, availableProperties.ToList());
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.PropertyMustHaveAccessibleGetterAndSetter);
+        }
     }
 
     public class TokenizeTemplateStringTests
@@ -372,6 +441,127 @@ public static class TemplateValidationTests
         }
     }
 
+    public class TokenizeRepeatingPropertyTests
+    {
+        [Fact]
+        public void RepeatingPropertyWithoutFormat_ShouldTokenizeCorrectly()
+        {
+            // Arrange
+            const string templateString = "{Prop...#}";
+            char? separator = null;
+
+            // Act
+            var result = TemplateValidation.TokenizeTemplateString(templateString, separator);
+
+            // Assert
+            result.Success.ShouldBeTrue();
+            result.Tokens.Count.ShouldBe(1);
+            result.Tokens[0].ShouldBeOfType<RepeatingPropertyTemplateToken>();
+            var token = (RepeatingPropertyTemplateToken)result.Tokens[0];
+            token.Name.ShouldBe("Prop");
+            token.Separator.ShouldBe('#');
+            token.Format.ShouldBeNull();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithFormat_ShouldTokenizeCorrectly()
+        {
+            // Arrange
+            const string templateString = "{Prop:D...#}";
+            char? separator = null;
+
+            // Act
+            var result = TemplateValidation.TokenizeTemplateString(templateString, separator);
+
+            // Assert
+            result.Success.ShouldBeTrue();
+            result.Tokens.Count.ShouldBe(1);
+            result.Tokens[0].ShouldBeOfType<RepeatingPropertyTemplateToken>();
+            var token = (RepeatingPropertyTemplateToken)result.Tokens[0];
+            token.Name.ShouldBe("Prop");
+            token.Format.ShouldBe("D");
+            token.Separator.ShouldBe('#');
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithNoSeparator_ShouldReturnFailure()
+        {
+            // Arrange
+            const string templateString = "{Prop...}";
+            char? separator = null;
+
+            // Act
+            var result = TemplateValidation.TokenizeTemplateString(templateString, separator);
+
+            // Assert
+            result.Success.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithMultiCharSeparator_ShouldReturnFailure()
+        {
+            // Arrange
+            const string templateString = "{Prop...##}";
+            char? separator = null;
+
+            // Act
+            var result = TemplateValidation.TokenizeTemplateString(templateString, separator);
+
+            // Assert
+            result.Success.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithDigitSeparator_ShouldReturnFailure()
+        {
+            // Arrange
+            const string templateString = "{Prop...1}";
+            char? separator = null;
+
+            // Act
+            var result = TemplateValidation.TokenizeTemplateString(templateString, separator);
+
+            // Assert
+            result.Success.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithLetterSeparator_ShouldReturnFailure()
+        {
+            // Arrange
+            const string templateString = "{Prop...a}";
+            char? separator = null;
+
+            // Act
+            var result = TemplateValidation.TokenizeTemplateString(templateString, separator);
+
+            // Assert
+            result.Success.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void RepeatingPropertyWithConstantAndDelimiter_ShouldTokenizeCorrectly()
+        {
+            // Arrange
+            const string templateString = "LOCATION#{Prop...#}";
+            char? separator = null;
+
+            // Act
+            var result = TemplateValidation.TokenizeTemplateString(templateString, separator);
+
+            // Assert
+            result.Success.ShouldBeTrue();
+            result.Tokens.Count.ShouldBe(3);
+            result.Tokens[0].ShouldBeOfType<ConstantTemplateToken>();
+            ((ConstantTemplateToken)result.Tokens[0]).Value.ShouldBe("LOCATION");
+            result.Tokens[1].ShouldBeOfType<DelimiterTemplateToken>();
+            result.Tokens[2].ShouldBeOfType<RepeatingPropertyTemplateToken>();
+            var token = (RepeatingPropertyTemplateToken)result.Tokens[2];
+            token.Name.ShouldBe("Prop");
+            token.Separator.ShouldBe('#');
+        }
+    }
+
     public class HasValidTemplateStructureTests
     {
         [Fact]
@@ -453,6 +643,22 @@ public static class TemplateValidationTests
 
             // Assert
             result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void TemplateWithRepeatingPropertyToken_ShouldReturnTrue()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.RepeatingProperty("Tags", '#')
+            };
+
+            // Act
+            var result = TemplateValidation.HasValidTemplateStructure(tokens);
+
+            // Assert
+            result.ShouldBeTrue();
         }
     }
 
@@ -554,6 +760,260 @@ public static class TemplateValidationTests
 
             // Assert
             result.ShouldBeFalse();
+        }
+
+        [Fact]
+        public void CompositeKeyWithRepeatingPropertyInSortKey_ShouldReturnTrue()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Constant("USER"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.Property("UserId"),
+                TemplateToken.PrimaryDelimiter('#'),
+                TemplateToken.Constant("TAG"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.RepeatingProperty("Tags", '#')
+            };
+
+            // Act
+            var result = TemplateValidation.ValidatePartitionAndSortKeyStructure(tokens, out int primaryDelimiterIndex);
+
+            // Assert
+            result.ShouldBeTrue();
+            primaryDelimiterIndex.ShouldBe(3);
+        }
+    }
+
+    public class ValidateRepeatingPropertyPositionTests
+    {
+        [Fact]
+        public void RepeatingPropertyAsLastPart_ShouldReturnSuccess()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Constant("USER"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.Property("UserId"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.RepeatingProperty("Tags", '#')
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyPosition(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void RepeatingPropertyNotLastPart_ShouldReturnFailure()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Constant("USER"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.RepeatingProperty("Tags", '#'),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.Property("UserId")
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyPosition(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Tags");
+        }
+
+        [Fact]
+        public void NoRepeatingProperties_ShouldReturnSuccess()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Constant("USER"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.Property("UserId")
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyPosition(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void CompositeKey_RepeatingPropertyLastInSortKey_ShouldReturnSuccess()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Property("UserId"),
+                TemplateToken.PrimaryDelimiter('#'),
+                TemplateToken.Constant("TAG"),
+                TemplateToken.Delimiter('-'),
+                TemplateToken.RepeatingProperty("Tags", ',')
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyPosition(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void CompositeKey_RepeatingPropertyNotLastInPartitionKey_ShouldReturnFailure()
+        {
+            // Arrange - repeating property in partition key section, not at the end
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.RepeatingProperty("Tags", ','),
+                TemplateToken.Delimiter('-'),
+                TemplateToken.Constant("SUFFIX"),
+                TemplateToken.PrimaryDelimiter('#'),
+                TemplateToken.Property("SortKey")
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyPosition(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Tags");
+        }
+
+        [Fact]
+        public void CompositeKey_RepeatingPropertyNotLastInSortKey_ShouldReturnFailure()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Property("UserId"),
+                TemplateToken.PrimaryDelimiter('#'),
+                TemplateToken.RepeatingProperty("Tags", ','),
+                TemplateToken.Delimiter('-'),
+                TemplateToken.Constant("SUFFIX")
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyPosition(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Tags");
+        }
+    }
+
+    public class ValidateRepeatingPropertyCountTests
+    {
+        [Fact]
+        public void SingleRepeatingProperty_ShouldReturnSuccess()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Constant("PREFIX"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.RepeatingProperty("Tags", '#')
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyCount(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void NoRepeatingProperties_ShouldReturnSuccess()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Constant("USER"),
+                TemplateToken.Delimiter('#'),
+                TemplateToken.Property("UserId")
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyCount(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void MultipleRepeatingPropertiesInSimpleKey_ShouldReturnFailure()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.RepeatingProperty("Tags", '#'),
+                TemplateToken.Delimiter('-'),
+                TemplateToken.RepeatingProperty("Items", ',')
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyCount(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Items");
+        }
+
+        [Fact]
+        public void CompositeKey_OneRepeatingPerSection_ShouldReturnSuccess()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.RepeatingProperty("Tags", ','),
+                TemplateToken.PrimaryDelimiter('#'),
+                TemplateToken.RepeatingProperty("Items", ',')
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyCount(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeTrue();
+        }
+
+        [Fact]
+        public void CompositeKey_MultipleRepeatingInSortKey_ShouldReturnFailure()
+        {
+            // Arrange
+            var tokens = new List<TemplateToken>
+            {
+                TemplateToken.Property("UserId"),
+                TemplateToken.PrimaryDelimiter('#'),
+                TemplateToken.RepeatingProperty("Tags", ','),
+                TemplateToken.Delimiter('-'),
+                TemplateToken.RepeatingProperty("Items", ',')
+            };
+
+            // Act
+            var result = TemplateValidation.ValidateRepeatingPropertyCount(tokens);
+
+            // Assert
+            result.IsSuccess.ShouldBeFalse();
+            result.Descriptor.ShouldBe(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart);
+            result.MessageArgs.ShouldNotBeNull();
+            result.MessageArgs[0].ShouldBe("Items");
         }
     }
 
