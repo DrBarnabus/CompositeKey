@@ -8,3 +8,7 @@
 
 # SourceGenerator Launch Settings
 src/CompositeKey.SourceGeneration/Properties/launchSettings.json
+
+# Claude Code
+.claude/settings.local.json
+.claude/todos/
