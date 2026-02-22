@@ -9,10 +9,15 @@
 
 ---
 
+## Installation
+
+```shell
+dotnet add package CompositeKey
+```
+
 ## What is CompositeKey
 
 **CompositeKey** is a library for source generating optimal parsing and formatting code for composite identifiers in dotnet.
-
 
 Implementing concepts widely used in NoSQL databases, such as [Amazon DynamoDb][dynamodb], a composite key is where
 multiple discrete keys are combined to form a more complex structure for use as the primary key of an item in the data.
@@ -24,18 +29,22 @@ public sealed partial record PrimaryKey(Guid PartitionKey, Guid SortKey);
 
 Console.WriteLine(PrimaryKey.Parse($"{Guid.NewGuid()}#{Guid.NewGuid():N}"));
 
-// Or they can be more complex
-[CompositeKey("{PartitionKey}|{AnyParsableValue:0.00}#ConstantValueAsPartOfKey@{FirstPartOfSortKey}~{SecondPartOfSortKey}", PrimaryKeySeparator = '#')]
-public sealed partial record ComplexKey(string PartitionKey, SomeEnum FirstPartOfSortKey, Guid SecondPartOfSortKey)
+// Or they can be more complex, with partition/sort separation and repeating sections
+[CompositeKey("{PartitionKey}|{AnyParsableValue:0.00}#ConstantValueAsPartOfKey@{FirstPartOfSortKey}~{Values...~}", PrimaryKeySeparator = '#')]
+public sealed partial record ComplexKey(string PartitionKey, SomeEnum FirstPartOfSortKey, ImmutableArray<Guid> Values)
 {
     public required int AnyParsableValue { get; init; }
 }
 
-var complexKey = new ComplexKey(Guid.NewGuid().ToString(), SomeEnum.Value, Guid.NewGuid()) { AnyParsableValue = 123 };
+var complexKey = new ComplexKey(Guid.NewGuid().ToString(), SomeEnum.Value, [Guid.NewGuid(), Guid.NewGuid()]) { AnyParsableValue = 123 };
 Console.WriteLine(complexKey.ToString());
 Console.WriteLine(complexKey.ToPartitionKeyString());
 Console.WriteLine(complexKey.ToSortKeyString());
 ```
+
+## Diagnostics
+
+CompositeKey includes analyzers that provide real-time feedback in your IDE. See the [diagnostics documentation](docs/rules/) for a full list of rules and how to resolve them.
 
 <!-- Badges -->
 [gh-release-badge]: https://img.shields.io/github/v/release/DrBarnabus/CompositeKey?color=g&style=for-the-badge
