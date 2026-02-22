@@ -14,4 +14,7 @@
         <Project Path="src\CompositeKey.SourceGeneration.FunctionalTests\CompositeKey.SourceGeneration.FunctionalTests.csproj" Type="Classic C#" />
         <Project Path="src\CompositeKey.SourceGeneration.UnitTests\CompositeKey.SourceGeneration.UnitTests.csproj" Type="Classic C#" />
     </Folder>
+    <Folder Name="/benchmarks/">
+        <Project Path="src\CompositeKey.Benchmarks\CompositeKey.Benchmarks.csproj" Type="Classic C#" />
+    </Folder>
 </Solution>

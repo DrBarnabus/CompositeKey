@@ -59,6 +59,14 @@ The solution is split into four main projects plus corresponding test projects:
 - **Central Package Management**: via `Directory.Packages.props`
 - Analyzer projects target both `net8.0` and `netstandard2.0`
 
+## Benchmarks
+
+**CompositeKey.Benchmarks** (`src/CompositeKey.Benchmarks/`) — BenchmarkDotNet benchmarks for generated code performance. Manual, developer-run (not part of CI). Covers `ToString`, `Parse`, `TryParse`, and partition/sort key methods across representative key types exercising all major code-generation paths.
+
+```bash
+dotnet run -c Release --project src/CompositeKey.Benchmarks -- --filter "*"
+```
+
 ## Conventions
 
 - Commit messages follow Conventional Commits (`feat:`, `fix:`, `perf:`, etc.) — GitVersion and `.versionrc` drive versioning and changelog

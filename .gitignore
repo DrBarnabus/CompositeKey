@@ -9,6 +9,9 @@
 # SourceGenerator Launch Settings
 src/CompositeKey.SourceGeneration/Properties/launchSettings.json
 
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+
 # Verify snapshot testing
 *.received.*
 
