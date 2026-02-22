@@ -1,0 +1,149 @@
+﻿[
+  {
+    TargetType: {
+      Type: {
+        Name: BasicPrimaryKey,
+        FullyQualifiedName: global::UnitTests.BasicPrimaryKey
+      },
+      Namespace: UnitTests,
+      TypeDeclarations: [
+        public partial record BasicPrimaryKey
+      ],
+      Properties: [
+        {
+          Type: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: FirstPart,
+          CamelCaseName: firstPart,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: true
+        },
+        {
+          Type: {
+            Name: String,
+            FullyQualifiedName: string
+          },
+          Name: SecondPart,
+          CamelCaseName: secondPart,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: true
+        },
+        {
+          Type: {
+            Name: Int32,
+            FullyQualifiedName: int
+          },
+          Name: ThirdPart,
+          CamelCaseName: thirdPart,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: true
+        }
+      ],
+      ConstructorParameters: [
+        {
+          Type: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: firstPart,
+          CamelCaseName: firstPart
+        },
+        {
+          Type: {
+            Name: String,
+            FullyQualifiedName: string
+          },
+          Name: secondPart,
+          CamelCaseName: secondPart,
+          ParameterIndex: 1
+        },
+        {
+          Type: {
+            Name: Int32,
+            FullyQualifiedName: int
+          },
+          Name: thirdPart,
+          CamelCaseName: thirdPart,
+          ParameterIndex: 2
+        }
+      ],
+      TypeName: BasicPrimaryKey
+    },
+    Key: {
+      Parts: [
+        {
+          Property: {
+            Type: {
+              Name: Guid,
+              FullyQualifiedName: global::System.Guid
+            },
+            Name: FirstPart,
+            CamelCaseName: firstPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          Format: d,
+          LengthRequired: 36,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: #,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: String,
+              FullyQualifiedName: string
+            },
+            Name: SecondPart,
+            CamelCaseName: secondPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          ParseType: String,
+          FormatType: String,
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        },
+        {
+          Value: #,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: Int32,
+              FullyQualifiedName: int
+            },
+            Name: ThirdPart,
+            CamelCaseName: thirdPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          ParseType: SpanParsable,
+          FormatType: SpanFormattable,
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        }
+      ],
+      InvariantFormatting: true
+    }
+  }
+]

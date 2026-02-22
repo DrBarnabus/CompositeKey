@@ -63,6 +63,14 @@ The solution is split into four main projects plus corresponding test projects:
 
 - Commit messages follow Conventional Commits (`feat:`, `fix:`, `perf:`, etc.) — GitVersion and `.versionrc` drive versioning and changelog
 - EditorConfig: 4-space indent, UTF-8, LF line endings, 120-char max line length
-- Test stack: xunit + Shouldly + AutoFixture
+- Test stack: xunit + Shouldly + AutoFixture + Verify (snapshot testing)
 - Unit tests use `CompilationHelper` to create in-memory Roslyn compilations
 - Functional tests define real key types and test format/parse round-trips
+- Snapshot tests (`Snapshots/` in `SourceGeneration.UnitTests`) use
+  Verify.SourceGenerators to capture generated `.g.cs` output and
+  `GenerationSpec` models as `.verified.*` baselines — any change to
+  emitted code or parser output will cause a snapshot diff failure
+- `*.received.*` files are gitignored; only `*.verified.*` baselines
+  are committed
+- The `ModuleInitializer` scrubs the non-deterministic
+  `GeneratedCodeAttribute` version string to keep snapshots stable

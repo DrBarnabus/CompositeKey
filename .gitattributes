@@ -12,5 +12,9 @@
 *.fsproj
 *.dbproj
 
+# Verify snapshot files
+*.verified.txt text eol=lf working-tree-encoding=UTF-8
+*.verified.cs  text eol=lf working-tree-encoding=UTF-8
+
 # Don't check for trailing whitespace at end of lines in the doc pages
 *.md -whitespace=blank-at-eol

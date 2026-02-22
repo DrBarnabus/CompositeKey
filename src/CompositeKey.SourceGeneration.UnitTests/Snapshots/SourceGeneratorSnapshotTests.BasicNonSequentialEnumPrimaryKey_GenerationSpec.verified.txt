@@ -1,0 +1,298 @@
+﻿[
+  {
+    TargetType: {
+      Type: {
+        Name: BasicNonSequentialEnum,
+        FullyQualifiedName: global::UnitTests.BasicNonSequentialEnum
+      },
+      Namespace: UnitTests,
+      TypeDeclarations: [
+        public partial record BasicNonSequentialEnum
+      ],
+      Properties: [
+        {
+          Type: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: FirstPart,
+          CamelCaseName: firstPart,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: true
+        },
+        {
+          Type: {
+            Name: String,
+            FullyQualifiedName: string
+          },
+          Name: SecondPart,
+          CamelCaseName: secondPart,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: true
+        },
+        {
+          Type: {
+            Name: CustomEnum,
+            FullyQualifiedName: global::UnitTests.CustomEnum
+          },
+          Name: ThirdPart,
+          CamelCaseName: thirdPart,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: true,
+          EnumSpec: {
+            Name: CustomEnum,
+            FullyQualifiedName: global::UnitTests.CustomEnum,
+            UnderlyingType: int,
+            Members: [
+              {
+                Name: One,
+                Value: 3
+              },
+              {
+                Name: Two,
+                Value: 2
+              },
+              {
+                Name: Three,
+                Value: 1
+              }
+            ],
+            IsSequentialFromZero: false
+          }
+        }
+      ],
+      ConstructorParameters: [
+        {
+          Type: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: FirstPart,
+          CamelCaseName: firstPart
+        },
+        {
+          Type: {
+            Name: String,
+            FullyQualifiedName: string
+          },
+          Name: SecondPart,
+          CamelCaseName: secondPart,
+          ParameterIndex: 1
+        },
+        {
+          Type: {
+            Name: CustomEnum,
+            FullyQualifiedName: global::UnitTests.CustomEnum
+          },
+          Name: ThirdPart,
+          CamelCaseName: thirdPart,
+          ParameterIndex: 2
+        }
+      ],
+      TypeName: BasicNonSequentialEnum
+    },
+    Key: {
+      AllParts: [
+        {
+          Property: {
+            Type: {
+              Name: Guid,
+              FullyQualifiedName: global::System.Guid
+            },
+            Name: FirstPart,
+            CamelCaseName: firstPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          Format: b,
+          LengthRequired: 38,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: #,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: String,
+              FullyQualifiedName: string
+            },
+            Name: SecondPart,
+            CamelCaseName: secondPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          ParseType: String,
+          FormatType: String,
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        },
+        {
+          Value: |,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: ConstantValue,
+          LengthRequired: 13,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: #,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: CustomEnum,
+              FullyQualifiedName: global::UnitTests.CustomEnum
+            },
+            Name: ThirdPart,
+            CamelCaseName: thirdPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true,
+            EnumSpec: {
+              Name: CustomEnum,
+              FullyQualifiedName: global::UnitTests.CustomEnum,
+              UnderlyingType: int,
+              Members: [
+                {
+                  Name: One,
+                  Value: 3
+                },
+                {
+                  Name: Two,
+                  Value: 2
+                },
+                {
+                  Name: Three,
+                  Value: 1
+                }
+              ],
+              IsSequentialFromZero: false
+            }
+          },
+          Format: g,
+          ParseType: Enum,
+          FormatType: Enum,
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        }
+      ],
+      PartitionKeyParts: [
+        {
+          Property: {
+            Type: {
+              Name: Guid,
+              FullyQualifiedName: global::System.Guid
+            },
+            Name: FirstPart,
+            CamelCaseName: firstPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          Format: b,
+          LengthRequired: 38,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: #,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: String,
+              FullyQualifiedName: string
+            },
+            Name: SecondPart,
+            CamelCaseName: secondPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          ParseType: String,
+          FormatType: String,
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        }
+      ],
+      PrimaryDelimiterKeyPart: {
+        Value: |,
+        LengthRequired: 1,
+        ExactLengthRequirement: true
+      },
+      SortKeyParts: [
+        {
+          Value: ConstantValue,
+          LengthRequired: 13,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: #,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: CustomEnum,
+              FullyQualifiedName: global::UnitTests.CustomEnum
+            },
+            Name: ThirdPart,
+            CamelCaseName: thirdPart,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true,
+            EnumSpec: {
+              Name: CustomEnum,
+              FullyQualifiedName: global::UnitTests.CustomEnum,
+              UnderlyingType: int,
+              Members: [
+                {
+                  Name: One,
+                  Value: 3
+                },
+                {
+                  Name: Two,
+                  Value: 2
+                },
+                {
+                  Name: Three,
+                  Value: 1
+                }
+              ],
+              IsSequentialFromZero: false
+            }
+          },
+          Format: g,
+          ParseType: Enum,
+          FormatType: Enum,
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        }
+      ],
+      InvariantFormatting: true
+    }
+  }
+]

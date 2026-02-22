@@ -9,6 +9,9 @@
 # SourceGenerator Launch Settings
 src/CompositeKey.SourceGeneration/Properties/launchSettings.json
 
+# Verify snapshot testing
+*.received.*
+
 # Claude Code
 .claude/settings.local.json
 .claude/todos/

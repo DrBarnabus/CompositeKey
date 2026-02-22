@@ -1,0 +1,95 @@
+﻿[
+  {
+    TargetType: {
+      Type: {
+        Name: KeyWithSamePropertyUsedTwice,
+        FullyQualifiedName: global::UnitTests.KeyWithSamePropertyUsedTwice
+      },
+      Namespace: UnitTests,
+      TypeDeclarations: [
+        public partial record KeyWithSamePropertyUsedTwice
+      ],
+      Properties: [
+        {
+          Type: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: Id,
+          CamelCaseName: id,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: true
+        },
+        {
+          Type: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: Id,
+          CamelCaseName: id,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: true
+        }
+      ],
+      ConstructorParameters: [
+        {
+          Type: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: Id,
+          CamelCaseName: id
+        }
+      ],
+      TypeName: KeyWithSamePropertyUsedTwice
+    },
+    Key: {
+      Parts: [
+        {
+          Property: {
+            Type: {
+              Name: Guid,
+              FullyQualifiedName: global::System.Guid
+            },
+            Name: Id,
+            CamelCaseName: id,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          Format: d,
+          LengthRequired: 36,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: |,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: Guid,
+              FullyQualifiedName: global::System.Guid
+            },
+            Name: Id,
+            CamelCaseName: id,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: true
+          },
+          Format: d,
+          LengthRequired: 36,
+          ExactLengthRequirement: true
+        }
+      ],
+      InvariantFormatting: true
+    }
+  }
+]
