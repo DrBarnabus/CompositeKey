@@ -74,7 +74,7 @@ jobs:
       - name: Restore
         run: dotnet restore --locked-mode
       - name: Build
-        run: dotnet build -c Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} -p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
+        run: dotnet build -c Release --no-restore --graph -p:Version=${{ steps.gitversion.outputs.semVer }} -p:PackageVersion=${{ steps.gitversion.outputs.semVer }}
       - name: Unit Test
         run: |
           dotnet test src/CompositeKey.SourceGeneration.UnitTests -c Release --no-restore --no-build --logger:"junit;LogFileName=sourcegeneration.{framework}.results.xml" --collect:"XPlat Code Coverage" --results-directory unit-test-results -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover

@@ -35,7 +35,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\CompositeKey\CompositeKey.csproj" />
-        <ProjectReference Include="..\CompositeKey.Analyzers\CompositeKey.Analyzers.csproj" />
+        <ProjectReference Include="..\CompositeKey.Analyzers\CompositeKey.Analyzers.csproj" SetTargetFramework="TargetFramework=netstandard2.0" />
         <ProjectReference Include="..\CompositeKey.Analyzers.Common\CompositeKey.Analyzers.Common.csproj" GlobalPropertiesToRemove="TargetFramework" />
     </ItemGroup>
 
