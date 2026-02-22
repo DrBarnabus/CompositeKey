@@ -1,0 +1,80 @@
+﻿[
+  {
+    TargetType: {
+      Type: {
+        Name: TagKey,
+        FullyQualifiedName: global::UnitTests.TagKey
+      },
+      Namespace: UnitTests,
+      TypeDeclarations: [
+        public partial record TagKey
+      ],
+      Properties: [
+        {
+          Type: {
+            Name: List,
+            FullyQualifiedName: global::System.Collections.Generic.List<string>
+          },
+          Name: Tags,
+          CamelCaseName: tags,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: false,
+          CollectionType: List
+        }
+      ],
+      PropertyInitializers: [
+        {
+          PropertyType: {
+            Name: List,
+            FullyQualifiedName: global::System.Collections.Generic.List<string>
+          },
+          Name: Tags,
+          CamelCaseName: tags,
+          MatchesConstructorParameter: false
+        }
+      ],
+      TypeName: TagKey
+    },
+    Key: {
+      Parts: [
+        {
+          Value: TAG,
+          LengthRequired: 3,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: _,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: List,
+              FullyQualifiedName: global::System.Collections.Generic.List<string>
+            },
+            Name: Tags,
+            CamelCaseName: tags,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: false,
+            CollectionType: List
+          },
+          Separator: #,
+          InnerParseType: String,
+          InnerFormatType: String,
+          InnerType: {
+            Name: String,
+            FullyQualifiedName: string
+          },
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        }
+      ],
+      InvariantFormatting: true
+    }
+  }
+]

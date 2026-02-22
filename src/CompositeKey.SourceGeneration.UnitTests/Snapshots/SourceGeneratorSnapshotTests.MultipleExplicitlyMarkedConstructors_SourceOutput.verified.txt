@@ -1,0 +1,17 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (7,22)-(7,37),
+      Message: The 'CompositeKey' type 'BasicPrimaryKey' has no obvious constructor, at present, only types with either a single constructor or types with a parameterless constructor are supported.,
+      Severity: Error,
+      Descriptor: {
+        Id: COMPOSITE0004,
+        Title: The type annotated with the 'CompositeKey' attribute has no obvious constructor.,
+        MessageFormat: The 'CompositeKey' type '{0}' has no obvious constructor, at present, only types with either a single constructor or types with a parameterless constructor are supported.,
+        Category: CompositeKey.SourceGeneration,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

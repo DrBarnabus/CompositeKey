@@ -1,0 +1,184 @@
+﻿[
+  {
+    TargetType: {
+      Type: {
+        Name: UserTagKey,
+        FullyQualifiedName: global::UnitTests.UserTagKey
+      },
+      Namespace: UnitTests,
+      TypeDeclarations: [
+        public partial record UserTagKey
+      ],
+      Properties: [
+        {
+          Type: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: UserId,
+          CamelCaseName: userId,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: false
+        },
+        {
+          Type: {
+            Name: List,
+            FullyQualifiedName: global::System.Collections.Generic.List<string>
+          },
+          Name: Tags,
+          CamelCaseName: tags,
+          IsRequired: false,
+          HasGetter: true,
+          HasSetter: true,
+          IsInitOnlySetter: false,
+          CollectionType: List
+        }
+      ],
+      PropertyInitializers: [
+        {
+          PropertyType: {
+            Name: Guid,
+            FullyQualifiedName: global::System.Guid
+          },
+          Name: UserId,
+          CamelCaseName: userId,
+          MatchesConstructorParameter: false
+        },
+        {
+          PropertyType: {
+            Name: List,
+            FullyQualifiedName: global::System.Collections.Generic.List<string>
+          },
+          Name: Tags,
+          CamelCaseName: tags,
+          ParameterIndex: 1,
+          MatchesConstructorParameter: false
+        }
+      ],
+      TypeName: UserTagKey
+    },
+    Key: {
+      AllParts: [
+        {
+          Property: {
+            Type: {
+              Name: Guid,
+              FullyQualifiedName: global::System.Guid
+            },
+            Name: UserId,
+            CamelCaseName: userId,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: false
+          },
+          Format: d,
+          LengthRequired: 36,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: |,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: TAG,
+          LengthRequired: 3,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: _,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: List,
+              FullyQualifiedName: global::System.Collections.Generic.List<string>
+            },
+            Name: Tags,
+            CamelCaseName: tags,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: false,
+            CollectionType: List
+          },
+          Separator: #,
+          InnerParseType: String,
+          InnerFormatType: String,
+          InnerType: {
+            Name: String,
+            FullyQualifiedName: string
+          },
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        }
+      ],
+      PartitionKeyParts: [
+        {
+          Property: {
+            Type: {
+              Name: Guid,
+              FullyQualifiedName: global::System.Guid
+            },
+            Name: UserId,
+            CamelCaseName: userId,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: false
+          },
+          Format: d,
+          LengthRequired: 36,
+          ExactLengthRequirement: true
+        }
+      ],
+      PrimaryDelimiterKeyPart: {
+        Value: |,
+        LengthRequired: 1,
+        ExactLengthRequirement: true
+      },
+      SortKeyParts: [
+        {
+          Value: TAG,
+          LengthRequired: 3,
+          ExactLengthRequirement: true
+        },
+        {
+          Value: _,
+          LengthRequired: 1,
+          ExactLengthRequirement: true
+        },
+        {
+          Property: {
+            Type: {
+              Name: List,
+              FullyQualifiedName: global::System.Collections.Generic.List<string>
+            },
+            Name: Tags,
+            CamelCaseName: tags,
+            IsRequired: false,
+            HasGetter: true,
+            HasSetter: true,
+            IsInitOnlySetter: false,
+            CollectionType: List
+          },
+          Separator: #,
+          InnerParseType: String,
+          InnerFormatType: String,
+          InnerType: {
+            Name: String,
+            FullyQualifiedName: string
+          },
+          LengthRequired: 1,
+          ExactLengthRequirement: false
+        }
+      ],
+      InvariantFormatting: true
+    }
+  }
+]
