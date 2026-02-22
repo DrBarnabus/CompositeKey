@@ -17,6 +17,11 @@
         <PackageVersion Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="5.0.0-1.25277.114" />
     </ItemGroup>
 
+    <!-- Benchmarks -->
+    <ItemGroup>
+        <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    </ItemGroup>
+
     <!-- Testing -->
     <ItemGroup>
         <PackageVersion Include="AutoFixture.Xunit2" Version="4.18.1" />
