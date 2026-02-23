@@ -24,9 +24,7 @@ public sealed class SourceGenerator : IIncrementalGenerator
             .Select(static (tuple, cancellationToken) =>
             {
                 var parser = new Parser(tuple.Right);
-                var generationSpec = parser.Parse(tuple.Left.TypeDeclarationSyntax, tuple.Left.SemanticModel, cancellationToken);
-
-                return (GenerationSpec: generationSpec, parser.Diagnostics);
+                return parser.Parse(tuple.Left.TypeDeclarationSyntax, tuple.Left.SemanticModel, cancellationToken);
             })
             .WithTrackingName(GenerationSpecTrackingName);
 
