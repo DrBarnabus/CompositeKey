@@ -31,10 +31,12 @@ The solution is split into four main projects plus corresponding test projects:
 
 **CompositeKey** (`src/CompositeKey/`) — Public API surface. Contains `[CompositeKey]` attribute, `[CompositeKeyConstructor]` attribute, and the `IPrimaryKey<TSelf>` / `ICompositePrimaryKey<TSelf>` interfaces. This is the NuGet package users install; analyzers and source generator ship embedded inside it.
 
-**CompositeKey.SourceGeneration** (`src/CompositeKey.SourceGeneration/`) — Incremental source generator implementing `IIncrementalGenerator`. Three key phases:
+**CompositeKey.SourceGeneration** (`src/CompositeKey.SourceGeneration/`) — Incremental source generator implementing `IIncrementalGenerator`. Key files:
+
 - `SourceGenerator.cs` — Entry point; uses `ForAttributeWithMetadataName` for incremental pipeline
-- `SourceGenerator.Parser.cs` — Extracts attribute data, validates types, builds `GenerationSpec` model
-- `SourceGenerator.Emitter.cs` — Generates `ToString()`, `Parse()`, `TryParse()`, `ToPartitionKeyString()`, `ToSortKeyString()`, partial formatting methods, and `ISpanParsable<TSelf>` implementations
+- `Parser.cs` — Extracts attribute data, validates types, builds `GenerationSpec` model; `Parse` returns a `(GenerationSpec?, Diagnostics)` tuple
+- `DiagnosticContext.cs` — Carries `CurrentLocation`, accumulated diagnostics, and `ReportDiagnostic` with source-tree fallback logic; created per `Parse` invocation
+- `Emitter.cs` — Generates `ToString()`, `Parse()`, `TryParse()`, `ToPartitionKeyString()`, `ToSortKeyString()`, partial formatting methods, and `ISpanParsable<TSelf>` implementations
 
 **CompositeKey.Analyzers.Common** (`src/CompositeKey.Analyzers.Common/`) — Shared validation logic used by both the source generator and IDE analyzers. Contains `TemplateStringTokenizer`, type/template/property validation, and all `DiagnosticDescriptor` definitions (COMPOSITE0001–COMPOSITE0008+).
 
