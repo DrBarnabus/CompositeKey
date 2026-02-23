@@ -19,36 +19,23 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
     private const LanguageVersion MinimumSupportedLanguageVersion = LanguageVersion.CSharp11;
 
     private readonly KnownTypeSymbols _knownTypeSymbols = knownTypeSymbols;
-    private readonly List<DiagnosticInfo> _diagnostics = [];
 
-    private Location? _location;
-
-    public ImmutableEquatableArray<DiagnosticInfo> Diagnostics => _diagnostics.ToImmutableEquatableArray();
-
-    public void ReportDiagnostic(DiagnosticDescriptor descriptor, Location? location, params object?[]? messageArgs)
-    {
-        Debug.Assert(_location != null);
-
-        if (location is null || (location.SourceTree is not null && !_knownTypeSymbols.Compilation.ContainsSyntaxTree(location.SourceTree)))
-            location = _location;
-
-        _diagnostics.Add(DiagnosticInfo.Create(descriptor, location, messageArgs));
-    }
-
-    public GenerationSpec? Parse(
+    public (GenerationSpec? GenerationSpec, ImmutableEquatableArray<DiagnosticInfo> Diagnostics) Parse(
         TypeDeclarationSyntax typeDeclarationSyntax, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
+        var diagnosticContext = new DiagnosticContext(_knownTypeSymbols.Compilation);
+
         var targetTypeSymbol = semanticModel.GetDeclaredSymbol(typeDeclarationSyntax, cancellationToken);
         Debug.Assert(targetTypeSymbol != null);
 
-        _location = targetTypeSymbol!.Locations.Length > 0 ? targetTypeSymbol.Locations[0] : null;
-        Debug.Assert(_location is not null);
+        diagnosticContext.CurrentLocation = targetTypeSymbol!.Locations.Length > 0 ? targetTypeSymbol.Locations[0] : null;
+        Debug.Assert(diagnosticContext.CurrentLocation is not null);
 
         var languageVersion = _knownTypeSymbols.Compilation is CSharpCompilation csc ? csc.LanguageVersion : (LanguageVersion?)null;
         if (languageVersion is null or < MinimumSupportedLanguageVersion)
         {
-            ReportDiagnostic(DiagnosticDescriptors.UnsupportedLanguageVersion, _location, languageVersion?.ToDisplayString(), MinimumSupportedLanguageVersion.ToDisplayString());
-            return null;
+            diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.UnsupportedLanguageVersion, diagnosticContext.CurrentLocation, languageVersion?.ToDisplayString(), MinimumSupportedLanguageVersion.ToDisplayString());
+            return (null, diagnosticContext.ToImmutableDiagnostics());
         }
 
         // Validate type structure using comprehensive shared validation
@@ -61,8 +48,8 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
 
         if (!validationResult.IsSuccess)
         {
-            ReportDiagnostic(validationResult.Descriptor, _location, validationResult.MessageArgs);
-            return null;
+            diagnosticContext.ReportDiagnostic(validationResult.Descriptor, diagnosticContext.CurrentLocation, validationResult.MessageArgs);
+            return (null, diagnosticContext.ToImmutableDiagnostics());
         }
 
         // Use validated data from the validation result (guaranteed non-null due to MemberNotNullWhen on IsSuccess)
@@ -77,9 +64,9 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
         var propertyInitializers = ParsePropertyInitializers(constructorParameters, properties.Select(p => p.Spec).ToList(), ref constructionStrategy, constructorSetsRequiredMembers);
 
         var propertiesUsedInKey = new List<(PropertySpec Spec, ITypeSymbol TypeSymbol)>();
-        var keyParts = ParseTemplateStringIntoKeyParts(compositeKeyAttributeValues!, properties, propertiesUsedInKey);
+        var keyParts = ParseTemplateStringIntoKeyParts(diagnosticContext, compositeKeyAttributeValues!, properties, propertiesUsedInKey);
         if (keyParts is null)
-            return null; // Should have already reported diagnostics by this point so just return null...
+            return (null, diagnosticContext.ToImmutableDiagnostics());
 
         var primaryDelimiterKeyPart = keyParts.OfType<PrimaryDelimiterKeyPart>().FirstOrDefault();
 
@@ -101,7 +88,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
                 sortKeyParts.ToImmutableEquatableArray());
         }
 
-        return new GenerationSpec(
+        var generationSpec = new GenerationSpec(
             new TargetTypeSpec(
                 new TypeRef(targetTypeSymbol),
                 targetTypeSymbol.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString() : null,
@@ -111,6 +98,8 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
                 (propertyInitializers?.Where(pi => propertiesUsedInKey.Any(p => p.Spec.Name == pi.Name))).ToImmutableEquatableArray(),
                 constructionStrategy),
             key);
+
+        return (generationSpec, diagnosticContext.ToImmutableDiagnostics());
     }
 
     private static (List<KeyPart> PartitionKeyParts, List<KeyPart> SortKeyParts) SplitKeyPartsIntoPartitionAndSortKey(List<KeyPart> keyParts)
@@ -124,6 +113,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
     }
 
     private List<KeyPart>? ParseTemplateStringIntoKeyParts(
+        DiagnosticContext diagnosticContext,
         CompositeKeyAttributeValues compositeKeyAttributeValues,
         List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> properties,
         List<(PropertySpec Spec, ITypeSymbol TypeSymbol)> propertiesUsedInKey)
@@ -133,26 +123,26 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
         var (tokenizationSuccessful, templateTokens) = TemplateValidation.TokenizeTemplateString(templateString, primaryKeySeparator);
         if (!tokenizationSuccessful)
         {
-            ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
+            diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, diagnosticContext.CurrentLocation, templateString);
             return null;
         }
 
         var separatorValidation = TemplateValidation.ValidatePrimaryKeySeparator(templateString, primaryKeySeparator, templateTokens);
         if (!separatorValidation.IsSuccess)
         {
-            ReportDiagnostic(separatorValidation.Descriptor, _location, separatorValidation.MessageArgs);
+            diagnosticContext.ReportDiagnostic(separatorValidation.Descriptor, diagnosticContext.CurrentLocation, separatorValidation.MessageArgs);
             return null;
         }
 
         if (!TemplateValidation.HasValidTemplateStructure(templateTokens))
         {
-            ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
+            diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, diagnosticContext.CurrentLocation, templateString);
             return null;
         }
 
         if (primaryKeySeparator.HasValue && !TemplateValidation.ValidatePartitionAndSortKeyStructure(templateTokens, out _))
         {
-            ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
+            diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, diagnosticContext.CurrentLocation, templateString);
             return null;
         }
 
@@ -163,15 +153,15 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             {
                 PrimaryDelimiterTemplateToken pd => new PrimaryDelimiterKeyPart(pd.Value) { LengthRequired = 1 },
                 DelimiterTemplateToken d => new DelimiterKeyPart(d.Value) { LengthRequired = 1 },
-                PropertyTemplateToken p => ToPropertyKeyPart(p),
-                RepeatingPropertyTemplateToken rp => ToRepeatingPropertyKeyPart(rp),
+                PropertyTemplateToken p => ToPropertyKeyPart(diagnosticContext, p),
+                RepeatingPropertyTemplateToken rp => ToRepeatingPropertyKeyPart(diagnosticContext, rp),
                 ConstantTemplateToken c => new ConstantKeyPart(c.Value) { LengthRequired = c.Value.Length },
                 _ => null
             };
 
             if (keyPart is null)
             {
-                ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, _location, templateString);
+                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.EmptyOrInvalidTemplateString, diagnosticContext.CurrentLocation, templateString);
                 return null;
             }
 
@@ -183,7 +173,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
         {
             if (keyPart is PropertyKeyPart pkp && pkp.Property.CollectionType != CollectionType.None)
             {
-                ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, _location, pkp.Property.Name);
+                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, diagnosticContext.CurrentLocation, pkp.Property.Name);
                 return null;
             }
         }
@@ -196,7 +186,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             if (valueParts.Any(kp => kp is RepeatingPropertyKeyPart))
             {
                 var repeatingPart = valueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
-                ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, _location, repeatingPart!.Property.Name);
+                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart!.Property.Name);
                 return null;
             }
         }
@@ -210,7 +200,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             if (partitionValueParts.Count > 0 && partitionValueParts.Any(kp => kp is RepeatingPropertyKeyPart) && partitionValueParts[^1] is not RepeatingPropertyKeyPart)
             {
                 var repeatingPart = partitionValueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
-                ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, _location, repeatingPart!.Property.Name);
+                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart!.Property.Name);
                 return null;
             }
 
@@ -218,14 +208,14 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             if (sortValueParts.Count > 0 && sortValueParts.Any(kp => kp is RepeatingPropertyKeyPart) && sortValueParts[^1] is not RepeatingPropertyKeyPart)
             {
                 var repeatingPart = sortValueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
-                ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, _location, repeatingPart!.Property.Name);
+                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart!.Property.Name);
                 return null;
             }
         }
 
         return keyParts;
 
-        PropertyKeyPart? ToPropertyKeyPart(PropertyTemplateToken templateToken)
+        PropertyKeyPart? ToPropertyKeyPart(DiagnosticContext ctx, PropertyTemplateToken templateToken)
         {
             var availableProperties = properties
                 .Select(p => new TemplateValidation.PropertyInfo(p.Spec.Name, p.Spec.HasGetter, p.Spec.HasSetter))
@@ -234,7 +224,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             var propertyValidation = TemplateValidation.ValidatePropertyReferences([templateToken], availableProperties);
             if (!propertyValidation.IsSuccess)
             {
-                ReportDiagnostic(propertyValidation.Descriptor, _location, propertyValidation.MessageArgs);
+                ctx.ReportDiagnostic(propertyValidation.Descriptor, ctx.CurrentLocation, propertyValidation.MessageArgs);
                 return null;
             }
 
@@ -246,7 +236,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             // Repeating type properties must use repeating syntax
             if (propertySpec.CollectionType != CollectionType.None)
             {
-                ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, _location, propertySpec.Name);
+                ctx.ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, ctx.CurrentLocation, propertySpec.Name);
                 return null;
             }
 
@@ -269,7 +259,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
 
             if (!formatValidation.IsSuccess)
             {
-                ReportDiagnostic(formatValidation.Descriptor, _location, formatValidation.MessageArgs);
+                ctx.ReportDiagnostic(formatValidation.Descriptor, ctx.CurrentLocation, formatValidation.MessageArgs);
                 return null;
             }
 
@@ -321,7 +311,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             };
         }
 
-        RepeatingPropertyKeyPart? ToRepeatingPropertyKeyPart(RepeatingPropertyTemplateToken templateToken)
+        RepeatingPropertyKeyPart? ToRepeatingPropertyKeyPart(DiagnosticContext ctx, RepeatingPropertyTemplateToken templateToken)
         {
             var availableProperties = properties
                 .Select(p => new TemplateValidation.PropertyInfo(p.Spec.Name, p.Spec.HasGetter, p.Spec.HasSetter))
@@ -330,7 +320,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             var propertyValidation = TemplateValidation.ValidatePropertyReferences([templateToken], availableProperties);
             if (!propertyValidation.IsSuccess)
             {
-                ReportDiagnostic(propertyValidation.Descriptor, _location, propertyValidation.MessageArgs);
+                ctx.ReportDiagnostic(propertyValidation.Descriptor, ctx.CurrentLocation, propertyValidation.MessageArgs);
                 return null;
             }
 
@@ -340,7 +330,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             // Validate that the property is a collection type
             if (propertySpec.CollectionType == CollectionType.None)
             {
-                ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType, _location, propertySpec.Name);
+                ctx.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType, ctx.CurrentLocation, propertySpec.Name);
                 return null;
             }
 
@@ -367,7 +357,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
 
             if (!formatValidation.IsSuccess)
             {
-                ReportDiagnostic(formatValidation.Descriptor, _location, formatValidation.MessageArgs);
+                ctx.ReportDiagnostic(formatValidation.Descriptor, ctx.CurrentLocation, formatValidation.MessageArgs);
                 return null;
             }
 
