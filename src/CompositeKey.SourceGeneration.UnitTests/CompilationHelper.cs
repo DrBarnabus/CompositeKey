@@ -19,6 +19,7 @@ public sealed record SourceGeneratorResult
 public static class CompilationHelper
 {
     private static readonly Assembly SystemRuntimeAssembly = Assembly.Load(new AssemblyName("System.Runtime"));
+    private static readonly Assembly CompositeKeyAssembly = Assembly.Load(new AssemblyName("CompositeKey"));
 
     private static readonly CSharpParseOptions DefaultParseOptions = CreateParseOptions();
 
@@ -33,7 +34,7 @@ public static class CompilationHelper
             MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
             MetadataReference.CreateFromFile(SystemRuntimeAssembly.Location),
 
-            MetadataReference.CreateFromFile(typeof(CompositeKeyAttribute).Assembly.Location),
+            MetadataReference.CreateFromFile(CompositeKeyAssembly.Location),
         ];
 
         return CSharpCompilation.Create(

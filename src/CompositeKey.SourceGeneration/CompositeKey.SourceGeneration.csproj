@@ -7,6 +7,9 @@
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
         <DefineConstants>$(DefineConstants);BUILDING_SOURCE_GENERATOR</DefineConstants>
+
+        <!-- Exclude PolySharp polyfills that conflict with runtime types when exposed via InternalsVisibleTo -->
+        <PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute</PolySharpExcludeGeneratedTypes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,6 +27,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\CompositeKey.Analyzers.Common\CompositeKey.Analyzers.Common.csproj" PrivateAssets="all" ReferenceOutputAssembly="true" GlobalPropertiesToRemove="TargetFramework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="CompositeKey.SourceGeneration.UnitTests" />
     </ItemGroup>
 
     <ItemGroup>

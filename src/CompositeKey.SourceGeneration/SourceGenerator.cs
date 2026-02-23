@@ -7,8 +7,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace CompositeKey.SourceGeneration;
 
 [Generator]
-public sealed partial class SourceGenerator : IIncrementalGenerator
+public sealed class SourceGenerator : IIncrementalGenerator
 {
+    private const string CompositeKeyAttributeFullName = "CompositeKey.CompositeKeyAttribute";
+
     public const string GenerationSpecTrackingName = nameof(GenerationSpec);
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
