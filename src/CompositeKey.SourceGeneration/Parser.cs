@@ -153,8 +153,8 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             {
                 PrimaryDelimiterTemplateToken pd => new PrimaryDelimiterKeyPart(pd.Value) { LengthRequired = 1 },
                 DelimiterTemplateToken d => new DelimiterKeyPart(d.Value) { LengthRequired = 1 },
-                PropertyTemplateToken p => ToPropertyKeyPart(diagnosticContext, p),
-                RepeatingPropertyTemplateToken rp => ToRepeatingPropertyKeyPart(diagnosticContext, rp),
+                PropertyTemplateToken p => ToPropertyKeyPart(diagnosticContext, p.Name, p.Format, isRepeating: false, repeatingSeparator: null),
+                RepeatingPropertyTemplateToken rp => ToPropertyKeyPart(diagnosticContext, rp.Name, rp.Format, isRepeating: true, repeatingSeparator: rp.Separator),
                 ConstantTemplateToken c => new ConstantKeyPart(c.Value) { LengthRequired = c.Value.Length },
                 _ => null
             };
@@ -171,7 +171,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
         // Validate: repeating type used without repeating syntax -> COMPOSITE0010
         foreach (var keyPart in keyParts)
         {
-            if (keyPart is PropertyKeyPart pkp && pkp.Property.CollectionType != CollectionType.None)
+            if (keyPart is PropertyKeyPart { CollectionSemantics: null } pkp && pkp.Property.CollectionType != CollectionType.None)
             {
                 diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, diagnosticContext.CurrentLocation, pkp.Property.Name);
                 return null;
@@ -180,13 +180,13 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
 
         // Validate: repeating property must be the last value part in its key section -> COMPOSITE0011
         var valueParts = keyParts.Where(kp => kp is ValueKeyPart).ToList();
-        if (valueParts.Count > 0 && valueParts[^1] is not RepeatingPropertyKeyPart)
+        if (valueParts.Count > 0 && valueParts[^1] is not PropertyKeyPart { CollectionSemantics: not null })
         {
             // Only report if there's a repeating part that isn't last
-            if (valueParts.Any(kp => kp is RepeatingPropertyKeyPart))
+            if (valueParts.Any(kp => kp is PropertyKeyPart { CollectionSemantics: not null }))
             {
-                var repeatingPart = valueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
-                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart!.Property.Name);
+                var repeatingPart = (PropertyKeyPart)valueParts.First(kp => kp is PropertyKeyPart { CollectionSemantics: not null });
+                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart.Property.Name);
                 return null;
             }
         }
@@ -197,65 +197,85 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             int delimiterIndex = keyParts.FindIndex(kp => kp is PrimaryDelimiterKeyPart);
 
             var partitionValueParts = keyParts.Take(delimiterIndex).Where(kp => kp is ValueKeyPart).ToList();
-            if (partitionValueParts.Count > 0 && partitionValueParts.Any(kp => kp is RepeatingPropertyKeyPart) && partitionValueParts[^1] is not RepeatingPropertyKeyPart)
+            if (partitionValueParts.Count > 0 && partitionValueParts.Any(kp => kp is PropertyKeyPart { CollectionSemantics: not null }) && partitionValueParts[^1] is not PropertyKeyPart { CollectionSemantics: not null })
             {
-                var repeatingPart = partitionValueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
-                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart!.Property.Name);
+                var repeatingPart = (PropertyKeyPart)partitionValueParts.First(kp => kp is PropertyKeyPart { CollectionSemantics: not null });
+                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart.Property.Name);
                 return null;
             }
 
             var sortValueParts = keyParts.Skip(delimiterIndex + 1).Where(kp => kp is ValueKeyPart).ToList();
-            if (sortValueParts.Count > 0 && sortValueParts.Any(kp => kp is RepeatingPropertyKeyPart) && sortValueParts[^1] is not RepeatingPropertyKeyPart)
+            if (sortValueParts.Count > 0 && sortValueParts.Any(kp => kp is PropertyKeyPart { CollectionSemantics: not null }) && sortValueParts[^1] is not PropertyKeyPart { CollectionSemantics: not null })
             {
-                var repeatingPart = sortValueParts.First(kp => kp is RepeatingPropertyKeyPart) as RepeatingPropertyKeyPart;
-                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart!.Property.Name);
+                var repeatingPart = (PropertyKeyPart)sortValueParts.First(kp => kp is PropertyKeyPart { CollectionSemantics: not null });
+                diagnosticContext.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustBeLastPart, diagnosticContext.CurrentLocation, repeatingPart.Property.Name);
                 return null;
             }
         }
 
         return keyParts;
 
-        PropertyKeyPart? ToPropertyKeyPart(DiagnosticContext ctx, PropertyTemplateToken templateToken)
+        PropertyKeyPart? ToPropertyKeyPart(DiagnosticContext ctx, string name, string? tokenFormat, bool isRepeating, char? repeatingSeparator)
         {
             var availableProperties = properties
                 .Select(p => new TemplateValidation.PropertyInfo(p.Spec.Name, p.Spec.HasGetter, p.Spec.HasSetter))
                 .ToList();
 
-            var propertyValidation = TemplateValidation.ValidatePropertyReferences([templateToken], availableProperties);
+            var propertyValidation = TemplateValidation.ValidatePropertyReferences(
+                [new PropertyTemplateToken(name, tokenFormat)], availableProperties);
             if (!propertyValidation.IsSuccess)
             {
                 ctx.ReportDiagnostic(propertyValidation.Descriptor, ctx.CurrentLocation, propertyValidation.MessageArgs);
                 return null;
             }
 
-            var property = properties.First(p => p.Spec.Name == templateToken.Name);
-
-            propertiesUsedInKey.Add(property);
+            var property = properties.First(p => p.Spec.Name == name);
             var (propertySpec, typeSymbol) = property;
 
-            // Repeating type properties must use repeating syntax
-            if (propertySpec.CollectionType != CollectionType.None)
+            CollectionSemantics? collectionSemantics = null;
+            ITypeSymbol resolvedTypeSymbol;
+            string resolvedTypeName;
+
+            if (isRepeating)
             {
-                ctx.ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, ctx.CurrentLocation, propertySpec.Name);
-                return null;
+                if (propertySpec.CollectionType == CollectionType.None)
+                {
+                    ctx.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType, ctx.CurrentLocation, propertySpec.Name);
+                    return null;
+                }
+
+                var namedTypeSymbol = (INamedTypeSymbol)typeSymbol;
+                var innerTypeSymbol = namedTypeSymbol.TypeArguments[0];
+                resolvedTypeSymbol = innerTypeSymbol;
+                resolvedTypeName = innerTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                collectionSemantics = new CollectionSemantics(repeatingSeparator!.Value, new TypeRef(innerTypeSymbol));
+            }
+            else
+            {
+                if (propertySpec.CollectionType != CollectionType.None)
+                {
+                    ctx.ReportDiagnostic(DiagnosticDescriptors.RepeatingTypeMustUseRepeatingSyntax, ctx.CurrentLocation, propertySpec.Name);
+                    return null;
+                }
+
+                resolvedTypeSymbol = typeSymbol;
+                resolvedTypeName = propertySpec.Type.FullyQualifiedName;
             }
 
-            var interfaces = typeSymbol.AllInterfaces;
-            bool isSpanParsable = interfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith("global::System.ISpanParsable"));
-            bool isSpanFormattable = interfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Equals("global::System.ISpanFormattable"));
+            var (isSpanParsable, isSpanFormattable) = PropertyValidation.DetectSpanInterfaces(resolvedTypeSymbol);
 
             var typeInfo = new PropertyValidation.PropertyTypeInfo(
-                TypeName: propertySpec.Type.FullyQualifiedName,
-                IsGuid: SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.GuidType),
-                IsString: SymbolEqualityComparer.Default.Equals(typeSymbol, _knownTypeSymbols.StringType),
-                IsEnum: typeSymbol.TypeKind == TypeKind.Enum,
+                TypeName: resolvedTypeName,
+                IsGuid: SymbolEqualityComparer.Default.Equals(resolvedTypeSymbol, _knownTypeSymbols.GuidType),
+                IsString: SymbolEqualityComparer.Default.Equals(resolvedTypeSymbol, _knownTypeSymbols.StringType),
+                IsEnum: resolvedTypeSymbol.TypeKind == TypeKind.Enum,
                 IsSpanParsable: isSpanParsable,
                 IsSpanFormattable: isSpanFormattable);
 
             var formatValidation = PropertyValidation.ValidatePropertyFormat(
                 propertySpec.Name,
                 typeInfo,
-                templateToken.Format);
+                tokenFormat);
 
             if (!formatValidation.IsSuccess)
             {
@@ -269,22 +289,20 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
 
             if (!typeCompatibility.IsSuccess)
             {
-                throw new NotSupportedException($"Unsupported property of type '{propertySpec.Type.FullyQualifiedName}'");
+                throw new NotSupportedException($"Unsupported property of type '{resolvedTypeName}'");
             }
 
-            var lengthInfo = PropertyValidation.GetFormattedLength(typeInfo, templateToken.Format);
-            int lengthRequired = lengthInfo?.length ?? 1;
-            bool exactLengthRequirement = lengthInfo?.isExact ?? false;
+            propertiesUsedInKey.Add(property);
 
+            string? format = tokenFormat;
             ParseType parseType;
             FormatType formatType;
-            string? format = templateToken.Format;
 
             if (typeInfo.IsGuid)
             {
                 parseType = ParseType.Guid;
                 formatType = FormatType.Guid;
-                format = templateToken.Format?.ToLowerInvariant() ?? "d";
+                format = tokenFormat?.ToLowerInvariant() ?? "d";
             }
             else if (typeInfo.IsString)
             {
@@ -296,7 +314,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
             {
                 parseType = ParseType.Enum;
                 formatType = FormatType.Enum;
-                format = templateToken.Format?.ToLowerInvariant() ?? "g";
+                format = tokenFormat?.ToLowerInvariant() ?? "g";
             }
             else
             {
@@ -304,106 +322,27 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
                 formatType = FormatType.SpanFormattable;
             }
 
-            return new PropertyKeyPart(propertySpec, format, parseType, formatType)
+            var typeDescriptor = new PropertyTypeDescriptor(parseType, formatType);
+
+            int lengthRequired;
+            bool exactLengthRequirement;
+
+            if (collectionSemantics is not null)
             {
-                LengthRequired = lengthRequired,
-                ExactLengthRequirement = exactLengthRequirement
-            };
-        }
-
-        RepeatingPropertyKeyPart? ToRepeatingPropertyKeyPart(DiagnosticContext ctx, RepeatingPropertyTemplateToken templateToken)
-        {
-            var availableProperties = properties
-                .Select(p => new TemplateValidation.PropertyInfo(p.Spec.Name, p.Spec.HasGetter, p.Spec.HasSetter))
-                .ToList();
-
-            var propertyValidation = TemplateValidation.ValidatePropertyReferences([templateToken], availableProperties);
-            if (!propertyValidation.IsSuccess)
-            {
-                ctx.ReportDiagnostic(propertyValidation.Descriptor, ctx.CurrentLocation, propertyValidation.MessageArgs);
-                return null;
-            }
-
-            var property = properties.First(p => p.Spec.Name == templateToken.Name);
-            var (propertySpec, typeSymbol) = property;
-
-            // Validate that the property is a collection type
-            if (propertySpec.CollectionType == CollectionType.None)
-            {
-                ctx.ReportDiagnostic(DiagnosticDescriptors.RepeatingPropertyMustUseCollectionType, ctx.CurrentLocation, propertySpec.Name);
-                return null;
-            }
-
-            // Extract inner type from the collection
-            var namedTypeSymbol = (INamedTypeSymbol)typeSymbol;
-            var innerTypeSymbol = namedTypeSymbol.TypeArguments[0];
-
-            var innerInterfaces = innerTypeSymbol.AllInterfaces;
-            bool isSpanParsable = innerInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).StartsWith("global::System.ISpanParsable"));
-            bool isSpanFormattable = innerInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Equals("global::System.ISpanFormattable"));
-
-            var innerTypeInfo = new PropertyValidation.PropertyTypeInfo(
-                TypeName: innerTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                IsGuid: SymbolEqualityComparer.Default.Equals(innerTypeSymbol, _knownTypeSymbols.GuidType),
-                IsString: SymbolEqualityComparer.Default.Equals(innerTypeSymbol, _knownTypeSymbols.StringType),
-                IsEnum: innerTypeSymbol.TypeKind == TypeKind.Enum,
-                IsSpanParsable: isSpanParsable,
-                IsSpanFormattable: isSpanFormattable);
-
-            var formatValidation = PropertyValidation.ValidatePropertyFormat(
-                propertySpec.Name,
-                innerTypeInfo,
-                templateToken.Format);
-
-            if (!formatValidation.IsSuccess)
-            {
-                ctx.ReportDiagnostic(formatValidation.Descriptor, ctx.CurrentLocation, formatValidation.MessageArgs);
-                return null;
-            }
-
-            var typeCompatibility = PropertyValidation.ValidatePropertyTypeCompatibility(
-                propertySpec.Name,
-                innerTypeInfo);
-
-            if (!typeCompatibility.IsSuccess)
-            {
-                throw new NotSupportedException($"Unsupported inner type '{innerTypeInfo.TypeName}' for repeating property '{propertySpec.Name}'");
-            }
-
-            propertiesUsedInKey.Add(property);
-
-            ParseType innerParseType;
-            FormatType innerFormatType;
-            string? format = templateToken.Format;
-
-            if (innerTypeInfo.IsGuid)
-            {
-                innerParseType = ParseType.Guid;
-                innerFormatType = FormatType.Guid;
-                format = templateToken.Format?.ToLowerInvariant() ?? "d";
-            }
-            else if (innerTypeInfo.IsString)
-            {
-                innerParseType = ParseType.String;
-                innerFormatType = FormatType.String;
-                format = null;
-            }
-            else if (innerTypeInfo.IsEnum)
-            {
-                innerParseType = ParseType.Enum;
-                innerFormatType = FormatType.Enum;
-                format = templateToken.Format?.ToLowerInvariant() ?? "g";
+                lengthRequired = 1;
+                exactLengthRequirement = false;
             }
             else
             {
-                innerParseType = ParseType.SpanParsable;
-                innerFormatType = FormatType.SpanFormattable;
+                var lengthInfo = PropertyValidation.GetFormattedLength(typeInfo, tokenFormat);
+                lengthRequired = lengthInfo?.length ?? 1;
+                exactLengthRequirement = lengthInfo?.isExact ?? false;
             }
 
-            return new RepeatingPropertyKeyPart(propertySpec, templateToken.Separator, format, innerParseType, innerFormatType, new TypeRef(innerTypeSymbol))
+            return new PropertyKeyPart(propertySpec, format, typeDescriptor, collectionSemantics)
             {
-                LengthRequired = 1,
-                ExactLengthRequirement = false
+                LengthRequired = lengthRequired,
+                ExactLengthRequirement = exactLengthRequirement
             };
         }
     }

@@ -113,6 +113,7 @@
             IsInitOnlySetter: true
           },
           Format: b,
+          TypeDescriptor: {},
           LengthRequired: 38,
           ExactLengthRequirement: true
         },
@@ -134,8 +135,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: String,
-          FormatType: String,
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         },
@@ -188,8 +191,10 @@
             }
           },
           Format: g,
-          ParseType: Enum,
-          FormatType: Enum,
+          TypeDescriptor: {
+            ParseType: Enum,
+            FormatType: Enum
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         }
@@ -209,6 +214,7 @@
             IsInitOnlySetter: true
           },
           Format: b,
+          TypeDescriptor: {},
           LengthRequired: 38,
           ExactLengthRequirement: true
         },
@@ -230,8 +236,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: String,
-          FormatType: String,
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         }
@@ -286,8 +294,10 @@
             }
           },
           Format: g,
-          ParseType: Enum,
-          FormatType: Enum,
+          TypeDescriptor: {
+            ParseType: Enum,
+            FormatType: Enum
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         }

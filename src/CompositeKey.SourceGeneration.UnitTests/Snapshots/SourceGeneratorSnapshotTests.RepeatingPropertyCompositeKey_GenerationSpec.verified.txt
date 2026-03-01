@@ -75,6 +75,7 @@
             IsInitOnlySetter: false
           },
           Format: d,
+          TypeDescriptor: {},
           LengthRequired: 36,
           ExactLengthRequirement: true
         },
@@ -107,12 +108,16 @@
             IsInitOnlySetter: false,
             CollectionType: List
           },
-          Separator: #,
-          InnerParseType: String,
-          InnerFormatType: String,
-          InnerType: {
-            Name: String,
-            FullyQualifiedName: string
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
+          CollectionSemantics: {
+            Separator: #,
+            InnerType: {
+              Name: String,
+              FullyQualifiedName: string
+            }
           },
           LengthRequired: 1,
           ExactLengthRequirement: false
@@ -133,6 +138,7 @@
             IsInitOnlySetter: false
           },
           Format: d,
+          TypeDescriptor: {},
           LengthRequired: 36,
           ExactLengthRequirement: true
         }
@@ -167,12 +173,16 @@
             IsInitOnlySetter: false,
             CollectionType: List
           },
-          Separator: #,
-          InnerParseType: String,
-          InnerFormatType: String,
-          InnerType: {
-            Name: String,
-            FullyQualifiedName: string
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
+          CollectionSemantics: {
+            Separator: #,
+            InnerType: {
+              Name: String,
+              FullyQualifiedName: string
+            }
           },
           LengthRequired: 1,
           ExactLengthRequirement: false

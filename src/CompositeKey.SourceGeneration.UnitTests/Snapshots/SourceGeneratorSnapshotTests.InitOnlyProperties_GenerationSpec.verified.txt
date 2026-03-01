@@ -96,6 +96,7 @@
             IsInitOnlySetter: true
           },
           Format: d,
+          TypeDescriptor: {},
           LengthRequired: 36,
           ExactLengthRequirement: true
         },
@@ -118,6 +119,7 @@
             IsInitOnlySetter: true
           },
           Format: d,
+          TypeDescriptor: {},
           LengthRequired: 36,
           ExactLengthRequirement: true
         },
@@ -140,6 +142,7 @@
             IsInitOnlySetter: true
           },
           Format: d,
+          TypeDescriptor: {},
           LengthRequired: 36,
           ExactLengthRequirement: true
         }

@@ -346,7 +346,7 @@ internal sealed class Emitter(SourceProductionContext context)
 
     private static void WriteSplitImplementation(SourceWriter writer, List<KeyPart> parts, string inputName, out string partRangesVariableName, bool shouldThrow, out string? partCountVariableName)
     {
-        var repeatingPart = parts.OfType<RepeatingPropertyKeyPart>().FirstOrDefault();
+        var repeatingPart = parts.OfType<PropertyKeyPart>().FirstOrDefault(p => p.CollectionSemantics is not null);
         var uniqueDelimiters = parts.OfType<DelimiterKeyPart>().Select(d => d.Value).Distinct().ToList();
 
         partRangesVariableName = $"{inputName}PartRanges";
@@ -354,12 +354,12 @@ internal sealed class Emitter(SourceProductionContext context)
 
         if (repeatingPart is not null)
         {
-            bool sameSeparator = uniqueDelimiters.Contains(repeatingPart.Separator);
+            bool sameSeparator = uniqueDelimiters.Contains(repeatingPart.CollectionSemantics!.Separator);
 
             if (sameSeparator)
             {
                 // Same separator as key delimiters: split produces variable number of parts
-                int fixedValueParts = parts.OfType<ValueKeyPart>().Count(p => p is not RepeatingPropertyKeyPart);
+                int fixedValueParts = parts.OfType<ValueKeyPart>().Count(p => p is not PropertyKeyPart { CollectionSemantics: not null });
 
                 (string method, string delimiters) = uniqueDelimiters switch
                 {
@@ -452,7 +452,7 @@ internal sealed class Emitter(SourceProductionContext context)
                 continue;
             }
 
-            if (valueKeyPart is RepeatingPropertyKeyPart repeatingPart)
+            if (valueKeyPart is PropertyKeyPart { CollectionSemantics: not null } repeatingPart)
             {
                 WriteRepeatingPropertyParse(repeatingPart, i);
                 continue;
@@ -464,7 +464,7 @@ internal sealed class Emitter(SourceProductionContext context)
 
             switch (valueKeyPart)
             {
-                case PropertyKeyPart { ParseType: ParseType.Guid } part:
+                case PropertyKeyPart { TypeDescriptor.ParseType: ParseType.Guid } part:
                     writer.WriteLines($"""
                                        if ({ToStrictLengthCheck(part, partInputVariable)}!Guid.TryParseExact({partInputVariable}, "{part.Format}", out var {camelCaseName}))
                                            {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
@@ -472,7 +472,7 @@ internal sealed class Emitter(SourceProductionContext context)
                                        """);
                     break;
 
-                case PropertyKeyPart { ParseType: ParseType.String }:
+                case PropertyKeyPart { TypeDescriptor.ParseType: ParseType.String }:
                     writer.WriteLines($"""
                                        if ({partInputVariable}.Length == 0)
                                            {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
@@ -482,7 +482,7 @@ internal sealed class Emitter(SourceProductionContext context)
                                        """);
                     break;
 
-                case PropertyKeyPart { ParseType: ParseType.Enum } part:
+                case PropertyKeyPart { TypeDescriptor.ParseType: ParseType.Enum } part:
                     if (part.Property.EnumSpec is null)
                         throw new InvalidOperationException($"{nameof(part.Property.EnumSpec)} is null");
 
@@ -493,7 +493,7 @@ internal sealed class Emitter(SourceProductionContext context)
                                        """);
                     break;
 
-                case PropertyKeyPart { ParseType: ParseType.SpanParsable } part:
+                case PropertyKeyPart { TypeDescriptor.ParseType: ParseType.SpanParsable } part:
                     writer.WriteLines($"""
                                        if (!{part.Property.Type.FullyQualifiedName}.TryParse({partInputVariable}, out var {camelCaseName}))
                                            {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
@@ -525,12 +525,13 @@ internal sealed class Emitter(SourceProductionContext context)
         static string ToStrictLengthCheck(KeyPart part, string input) =>
             part.ExactLengthRequirement ? $"{input}.Length != {part.LengthRequired} || " : string.Empty;
 
-        void WriteRepeatingPropertyParse(RepeatingPropertyKeyPart repeatingPart, int valuePartIndex)
+        void WriteRepeatingPropertyParse(PropertyKeyPart repeatingPart, int valuePartIndex)
         {
+            var collection = repeatingPart.CollectionSemantics!;
             string camelCaseName = repeatingPart.Property.CamelCaseName;
-            string innerTypeName = repeatingPart.InnerType.FullyQualifiedName;
+            string innerTypeName = collection.InnerType.FullyQualifiedName;
             var uniqueDelimiters = parts.OfType<DelimiterKeyPart>().Select(d => d.Value).Distinct().ToList();
-            bool sameSeparator = uniqueDelimiters.Contains(repeatingPart.Separator);
+            bool sameSeparator = uniqueDelimiters.Contains(collection.Separator);
 
             string itemVar = $"{camelCaseName}Item";
             string listVar = camelCaseName;
@@ -560,7 +561,7 @@ internal sealed class Emitter(SourceProductionContext context)
 
                 writer.WriteLines($"""
                                    Span<Range> {repeatingRangesVar} = stackalloc Range[128];
-                                   int {repeatingCountVar} = {partInputVariable}.Split({repeatingRangesVar}, '{repeatingPart.Separator}', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                   int {repeatingCountVar} = {partInputVariable}.Split({repeatingRangesVar}, '{collection.Separator}', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                    if ({repeatingCountVar} < 1)
                                        {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
@@ -584,11 +585,11 @@ internal sealed class Emitter(SourceProductionContext context)
                                """);
         }
 
-        void WriteRepeatingItemParse(RepeatingPropertyKeyPart repeatingPart, string itemInput, string itemVar, string listVar)
+        void WriteRepeatingItemParse(PropertyKeyPart repeatingPart, string itemInput, string itemVar, string listVar)
         {
-            string innerTypeName = repeatingPart.InnerType.FullyQualifiedName;
+            string innerTypeName = repeatingPart.CollectionSemantics!.InnerType.FullyQualifiedName;
 
-            switch (repeatingPart.InnerParseType)
+            switch (repeatingPart.TypeDescriptor.ParseType)
             {
                 case ParseType.Guid:
                     writer.WriteLines($"""
@@ -672,7 +673,7 @@ internal sealed class Emitter(SourceProductionContext context)
     {
         writer.StartBlock(methodDeclaration);
 
-        bool hasRepeatingPart = keyParts.Any(kp => kp is RepeatingPropertyKeyPart);
+        bool hasRepeatingPart = keyParts.Any(kp => kp is PropertyKeyPart { CollectionSemantics: not null });
 
         if (hasRepeatingPart)
         {
@@ -681,9 +682,9 @@ internal sealed class Emitter(SourceProductionContext context)
         else if (keyParts.All(kp => kp is
                 DelimiterKeyPart
                 or ConstantKeyPart
-                or PropertyKeyPart { FormatType: FormatType.Guid, ExactLengthRequirement: true }
-                or PropertyKeyPart { FormatType: FormatType.Enum, Format: "g" }
-                or PropertyKeyPart { FormatType: FormatType.String }))
+                or PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Guid, ExactLengthRequirement: true }
+                or PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Enum, Format: "g" }
+                or PropertyKeyPart { TypeDescriptor.FormatType: FormatType.String }))
         {
             string lengthRequired = keyParts
                 .Where(kp => kp.ExactLengthRequirement)
@@ -703,8 +704,8 @@ internal sealed class Emitter(SourceProductionContext context)
 
                 lengthRequired += keyPart switch
                 {
-                    PropertyKeyPart { FormatType: FormatType.Enum, Property.EnumSpec: not null } p => $"{p.Property.EnumSpec.Name}Helper.GetFormattedLength({p.Property.Name})",
-                    PropertyKeyPart { FormatType: FormatType.String } p => $"{p.Property.Name}.Length",
+                    PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Enum, Property.EnumSpec: not null } p => $"{p.Property.EnumSpec.Name}Helper.GetFormattedLength({p.Property.Name})",
+                    PropertyKeyPart { TypeDescriptor.FormatType: FormatType.String } p => $"{p.Property.Name}.Length",
                     _ => throw new InvalidOperationException()
                 };
             }
@@ -727,7 +728,7 @@ internal sealed class Emitter(SourceProductionContext context)
                         writer.WriteLine($"\"{c.Value}\".CopyTo(destination[position..]);");
                         writer.WriteLine($"position += {c.Value.Length};");
                         break;
-                    case PropertyKeyPart { FormatType: FormatType.Guid } p:
+                    case PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Guid } p:
                         string formatProvider = invariantFormatting ? InvariantCulture : "null";
                         writer.StartBlock();
                         writer.WriteLine($"if (!((ISpanFormattable)state.{p.Property.Name}).TryFormat(destination[position..], out int {GetCharsWritten(p.Property)}, \"{p.Format ?? "d"}\", {formatProvider}))");
@@ -735,14 +736,14 @@ internal sealed class Emitter(SourceProductionContext context)
                         writer.WriteLine($"position += {GetCharsWritten(p.Property)};");
                         writer.EndBlock();
                         break;
-                    case PropertyKeyPart { FormatType: FormatType.Enum, Property.EnumSpec: not null } p:
+                    case PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Enum, Property.EnumSpec: not null } p:
                         writer.StartBlock();
                         writer.WriteLine($"if (!{p.Property.EnumSpec.Name}Helper.TryFormat(state.{p.Property.Name}, destination[position..], out int {GetCharsWritten(p.Property)}))");
                         writer.WriteLine("\tthrow new FormatException();\n");
                         writer.WriteLine($"position += {GetCharsWritten(p.Property)};");
                         writer.EndBlock();
                         break;
-                    case PropertyKeyPart { FormatType: FormatType.String } p:
+                    case PropertyKeyPart { TypeDescriptor.FormatType: FormatType.String } p:
                         writer.WriteLine($"state.{p.Property.Name}.CopyTo(destination[position..]);");
                         writer.WriteLine($"position += state.{p.Property.Name}.Length;");
                         break;
@@ -775,7 +776,7 @@ internal sealed class Emitter(SourceProductionContext context)
         void WriteRepeatingFormatBody()
         {
             // Emit empty collection checks for all repeating parts
-            foreach (var keyPart in keyParts.OfType<RepeatingPropertyKeyPart>())
+            foreach (var keyPart in keyParts.OfType<PropertyKeyPart>().Where(p => p.CollectionSemantics is not null))
             {
                 string countExpression = GetRepeatingCountExpression(keyPart.Property);
 
@@ -799,10 +800,10 @@ internal sealed class Emitter(SourceProductionContext context)
                     case ConstantKeyPart c:
                         fixedLiteralLength += c.Value.Length;
                         break;
-                    case PropertyKeyPart:
+                    case PropertyKeyPart { CollectionSemantics: null }:
                         formattedCount++;
                         break;
-                    case RepeatingPropertyKeyPart:
+                    case PropertyKeyPart { CollectionSemantics: not null }:
                         // Will be handled dynamically in the loop
                         break;
                 }
@@ -824,13 +825,13 @@ internal sealed class Emitter(SourceProductionContext context)
                     case ConstantKeyPart c:
                         writer.WriteLine($"handler.AppendLiteral(\"{c.Value}\");");
                         break;
-                    case PropertyKeyPart p:
+                    case PropertyKeyPart { CollectionSemantics: null } p:
                         if (p.Format is not null)
                             writer.WriteLine($"handler.AppendFormatted({p.Property.Name}, \"{p.Format}\");");
                         else
                             writer.WriteLine($"handler.AppendFormatted({p.Property.Name});");
                         break;
-                    case RepeatingPropertyKeyPart rp:
+                    case PropertyKeyPart { CollectionSemantics: not null } rp:
                         WriteRepeatingPartFormatLoop(rp);
                         break;
                 }
@@ -840,15 +841,16 @@ internal sealed class Emitter(SourceProductionContext context)
             writer.WriteLine("return handler.ToStringAndClear();");
         }
 
-        void WriteRepeatingPartFormatLoop(RepeatingPropertyKeyPart rp)
+        void WriteRepeatingPartFormatLoop(PropertyKeyPart rp)
         {
+            var collection = rp.CollectionSemantics!;
             string countExpression = GetRepeatingCountExpression(rp.Property);
 
             writer.StartBlock($"for (int i = 0; i < {countExpression}; i++)");
 
             writer.WriteLines($"""
                                if (i > 0)
-                                   handler.AppendLiteral("{rp.Separator}");
+                                   handler.AppendLiteral("{collection.Separator}");
 
                                """);
 
@@ -864,7 +866,7 @@ internal sealed class Emitter(SourceProductionContext context)
     private static void WriteDynamicFormatMethodBodyForKeyParts(
         SourceWriter writer, string methodDeclaration, IReadOnlyList<KeyPart> keyParts, bool invariantFormatting)
     {
-        var repeatingPart = keyParts.OfType<RepeatingPropertyKeyPart>().FirstOrDefault();
+        var repeatingPart = keyParts.OfType<PropertyKeyPart>().FirstOrDefault(p => p.CollectionSemantics is not null);
 
         if (repeatingPart is null)
         {
@@ -916,8 +918,9 @@ internal sealed class Emitter(SourceProductionContext context)
 
         void WriteRepeatingPartHandler()
         {
+            var collection = repeatingPart.CollectionSemantics!;
             string propName = repeatingPart.Property.Name;
-            char separator = repeatingPart.Separator;
+            char separator = collection.Separator;
             string? format = repeatingPart.Format;
             string countExpression = GetRepeatingCountExpression(repeatingPart.Property);
 
