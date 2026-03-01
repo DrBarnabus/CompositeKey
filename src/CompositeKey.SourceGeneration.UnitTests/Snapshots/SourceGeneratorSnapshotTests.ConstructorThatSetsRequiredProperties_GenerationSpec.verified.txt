@@ -114,6 +114,7 @@
             IsInitOnlySetter: true
           },
           Format: d,
+          TypeDescriptor: {},
           LengthRequired: 36,
           ExactLengthRequirement: true
         },
@@ -135,8 +136,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: String,
-          FormatType: String,
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         },
@@ -158,8 +161,10 @@
             HasSetter: true,
             IsInitOnlySetter: false
           },
-          ParseType: SpanParsable,
-          FormatType: SpanFormattable,
+          TypeDescriptor: {
+            ParseType: SpanParsable,
+            FormatType: SpanFormattable
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         }

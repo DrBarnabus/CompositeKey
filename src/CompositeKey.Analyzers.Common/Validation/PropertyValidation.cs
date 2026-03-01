@@ -165,6 +165,30 @@ public static class PropertyValidation
     }
 
     /// <summary>
+    /// Detects whether a type implements ISpanParsable&lt;T&gt; and/or ISpanFormattable.
+    /// </summary>
+    public static (bool IsSpanParsable, bool IsSpanFormattable) DetectSpanInterfaces(ITypeSymbol typeSymbol)
+    {
+        var interfaces = typeSymbol.AllInterfaces;
+        bool isSpanParsable = false;
+        bool isSpanFormattable = false;
+
+        foreach (var iface in interfaces)
+        {
+            string name = iface.MetadataName;
+            if (!isSpanParsable && name == "ISpanParsable`1" && iface.ContainingNamespace?.ToDisplayString() == "System")
+                isSpanParsable = true;
+            else if (!isSpanFormattable && name == "ISpanFormattable" && iface.ContainingNamespace?.ToDisplayString() == "System")
+                isSpanFormattable = true;
+
+            if (isSpanParsable && isSpanFormattable)
+                break;
+        }
+
+        return (isSpanParsable, isSpanFormattable);
+    }
+
+    /// <summary>
     /// Gets the required length for a formatted property value.
     /// </summary>
     public static (int length, bool isExact)? GetFormattedLength(PropertyTypeInfo typeInfo, string? formatSpecifier)

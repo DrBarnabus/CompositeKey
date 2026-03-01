@@ -93,6 +93,7 @@
             IsInitOnlySetter: true
           },
           Format: d,
+          TypeDescriptor: {},
           LengthRequired: 36,
           ExactLengthRequirement: true
         },
@@ -114,8 +115,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: String,
-          FormatType: String,
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         },
@@ -148,6 +151,7 @@
             IsInitOnlySetter: true
           },
           Format: x,
+          TypeDescriptor: {},
           LengthRequired: 32,
           ExactLengthRequirement: false
         }
@@ -167,6 +171,7 @@
             IsInitOnlySetter: true
           },
           Format: d,
+          TypeDescriptor: {},
           LengthRequired: 36,
           ExactLengthRequirement: true
         },
@@ -188,8 +193,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: String,
-          FormatType: String,
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         }
@@ -224,6 +231,7 @@
             IsInitOnlySetter: true
           },
           Format: x,
+          TypeDescriptor: {},
           LengthRequired: 32,
           ExactLengthRequirement: false
         }

@@ -93,6 +93,7 @@
             IsInitOnlySetter: true
           },
           Format: b,
+          TypeDescriptor: {},
           LengthRequired: 38,
           ExactLengthRequirement: true
         },
@@ -114,8 +115,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: SpanParsable,
-          FormatType: SpanFormattable,
+          TypeDescriptor: {
+            ParseType: SpanParsable,
+            FormatType: SpanFormattable
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         },
@@ -137,8 +140,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: String,
-          FormatType: String,
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         }
@@ -158,6 +163,7 @@
             IsInitOnlySetter: true
           },
           Format: b,
+          TypeDescriptor: {},
           LengthRequired: 38,
           ExactLengthRequirement: true
         },
@@ -179,8 +185,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: SpanParsable,
-          FormatType: SpanFormattable,
+          TypeDescriptor: {
+            ParseType: SpanParsable,
+            FormatType: SpanFormattable
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         }
@@ -204,8 +212,10 @@
             HasSetter: true,
             IsInitOnlySetter: true
           },
-          ParseType: String,
-          FormatType: String,
+          TypeDescriptor: {
+            ParseType: String,
+            FormatType: String
+          },
           LengthRequired: 1,
           ExactLengthRequirement: false
         }

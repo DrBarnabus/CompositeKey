@@ -284,19 +284,13 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
         var guidType = compilation.GetTypeByMetadataName("System.Guid");
         var stringType = compilation.GetSpecialType(SpecialType.System_String);
 
-        var isGuid = SymbolEqualityComparer.Default.Equals(innerType, guidType);
-        var isString = SymbolEqualityComparer.Default.Equals(innerType, stringType);
-        var isEnum = innerType.TypeKind == TypeKind.Enum;
-
-        var interfaces = innerType.AllInterfaces;
-        var isSpanParsable = interfaces.Any(i => i.ToDisplayString().StartsWith("System.ISpanParsable", StringComparison.Ordinal));
-        var isSpanFormattable = interfaces.Any(i => i.ToDisplayString().Equals("System.ISpanFormattable", StringComparison.Ordinal));
+        var (isSpanParsable, isSpanFormattable) = PropertyValidation.DetectSpanInterfaces(innerType);
 
         return new PropertyValidation.PropertyTypeInfo(
             TypeName: innerType.ToDisplayString(),
-            IsGuid: isGuid,
-            IsString: isString,
-            IsEnum: isEnum,
+            IsGuid: SymbolEqualityComparer.Default.Equals(innerType, guidType),
+            IsString: SymbolEqualityComparer.Default.Equals(innerType, stringType),
+            IsEnum: innerType.TypeKind == TypeKind.Enum,
             IsSpanParsable: isSpanParsable,
             IsSpanFormattable: isSpanFormattable);
     }
@@ -311,19 +305,13 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
         var guidType = compilation.GetTypeByMetadataName("System.Guid");
         var stringType = compilation.GetSpecialType(SpecialType.System_String);
 
-        var isGuid = SymbolEqualityComparer.Default.Equals(property.Type, guidType);
-        var isString = SymbolEqualityComparer.Default.Equals(property.Type, stringType);
-        var isEnum = property.Type.TypeKind == TypeKind.Enum;
-
-        var interfaces = property.Type.AllInterfaces;
-        var isSpanParsable = interfaces.Any(i => i.ToDisplayString().StartsWith("System.ISpanParsable", StringComparison.Ordinal));
-        var isSpanFormattable = interfaces.Any(i => i.ToDisplayString().Equals("System.ISpanFormattable", StringComparison.Ordinal));
+        var (isSpanParsable, isSpanFormattable) = PropertyValidation.DetectSpanInterfaces(property.Type);
 
         return new PropertyValidation.PropertyTypeInfo(
             TypeName: property.Type.ToDisplayString(),
-            IsGuid: isGuid,
-            IsString: isString,
-            IsEnum: isEnum,
+            IsGuid: SymbolEqualityComparer.Default.Equals(property.Type, guidType),
+            IsString: SymbolEqualityComparer.Default.Equals(property.Type, stringType),
+            IsEnum: property.Type.TypeKind == TypeKind.Enum,
             IsSpanParsable: isSpanParsable,
             IsSpanFormattable: isSpanFormattable);
     }
