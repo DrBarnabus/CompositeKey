@@ -28,7 +28,15 @@ public abstract class CompositeKeyAnalyzerBase : DiagnosticAnalyzer
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.ClassDeclaration);
+        context.RegisterCompilationStartAction(compilationContext =>
+        {
+            var knownTypeSymbols = new KnownTypeSymbols(compilationContext.Compilation);
+
+            compilationContext.RegisterSyntaxNodeAction(
+                nodeContext => AnalyzeTypeDeclaration(nodeContext, knownTypeSymbols),
+                SyntaxKind.RecordDeclaration,
+                SyntaxKind.ClassDeclaration);
+        });
     }
 
     /// <summary>
@@ -50,15 +58,13 @@ public abstract class CompositeKeyAnalyzerBase : DiagnosticAnalyzer
     /// Analyzes a type declaration to determine if it has a CompositeKey attribute
     /// and delegates to the derived analyzer if it does.
     /// </summary>
-    private void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
+    private void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context, KnownTypeSymbols knownTypeSymbols)
     {
         var typeDeclaration = (TypeDeclarationSyntax)context.Node;
         var typeSymbol = context.SemanticModel.GetDeclaredSymbol(typeDeclaration, context.CancellationToken);
 
         if (typeSymbol is null)
             return;
-
-        var knownTypeSymbols = new KnownTypeSymbols(context.Compilation);
 
         var compositeKeyAttribute = FindCompositeKeyAttribute(knownTypeSymbols, typeSymbol);
         if (compositeKeyAttribute is null)
