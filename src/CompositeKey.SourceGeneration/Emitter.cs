@@ -37,6 +37,16 @@ internal sealed class Emitter(SourceProductionContext context)
         [FormatType.SpanFormattable] = SpanFormattableFormatStrategy.Instance,
     };
 
+    private static IParseStrategy GetParseStrategy(ParseType parseType) =>
+        ParseStrategies.TryGetValue(parseType, out var strategy)
+            ? strategy
+            : throw new InvalidOperationException($"No parse strategy registered for {parseType}.");
+
+    private static IFormatStrategy GetFormatStrategy(FormatType formatType) =>
+        FormatStrategies.TryGetValue(formatType, out var strategy)
+            ? strategy
+            : throw new InvalidOperationException($"No format strategy registered for {formatType}.");
+
     private readonly SourceProductionContext _context = context;
 
     public void Emit(GenerationSpec generationSpec)
@@ -480,7 +490,7 @@ internal sealed class Emitter(SourceProductionContext context)
                 ? GetCamelCaseName(propertyPart.Property, propertyNameCounts)
                 : throw new InvalidOperationException($"Expected a {nameof(PropertyKeyPart)} but got a {valueKeyPart.GetType().Name}");
 
-            var parseStrategy = ParseStrategies[propertyPart.TypeDescriptor.ParseType];
+            var parseStrategy = GetParseStrategy(propertyPart.TypeDescriptor.ParseType);
             parseStrategy.EmitSingleParse(writer, propertyPart, partInputVariable, camelCaseName, shouldThrow);
 
             if (originalCamelCaseName is not null)
@@ -525,7 +535,7 @@ internal sealed class Emitter(SourceProductionContext context)
 
                 string riAccess = getPartInputVariable("ri");
 
-                var repeatingStrategy = ParseStrategies[repeatingPart.TypeDescriptor.ParseType];
+                var repeatingStrategy = GetParseStrategy(repeatingPart.TypeDescriptor.ParseType);
                 repeatingStrategy.EmitRepeatingItemParse(writer, repeatingPart, riAccess, itemVar, listVar, shouldThrow);
 
                 writer.EndBlock();
@@ -551,7 +561,7 @@ internal sealed class Emitter(SourceProductionContext context)
 
                 string riAccess = $"{partInputVariable}[{repeatingRangesVar}[ri]]";
 
-                var repeatingStrategy = ParseStrategies[repeatingPart.TypeDescriptor.ParseType];
+                var repeatingStrategy = GetParseStrategy(repeatingPart.TypeDescriptor.ParseType);
                 repeatingStrategy.EmitRepeatingItemParse(writer, repeatingPart, riAccess, itemVar, listVar, shouldThrow);
 
                 writer.EndBlock();
@@ -618,7 +628,8 @@ internal sealed class Emitter(SourceProductionContext context)
         {
             WriteRepeatingFormatBody();
         }
-        else if (keyParts.All(kp => kp is not PropertyKeyPart pp || FormatStrategies[pp.TypeDescriptor.FormatType].SupportsSpanFormat(pp)))
+        else if (keyParts.All(kp =>
+            kp is not PropertyKeyPart pp || GetFormatStrategy(pp.TypeDescriptor.FormatType).SupportsSpanFormat(pp)))
         {
             string lengthRequired = keyParts
                 .Where(kp => kp.ExactLengthRequirement)
@@ -636,7 +647,7 @@ internal sealed class Emitter(SourceProductionContext context)
                 if (lengthRequired.Length != 0)
                     lengthRequired += " + ";
 
-                lengthRequired += FormatStrategies[((PropertyKeyPart)keyPart).TypeDescriptor.FormatType]
+                lengthRequired += GetFormatStrategy(((PropertyKeyPart)keyPart).TypeDescriptor.FormatType)
                     .GetVariableLengthExpression((PropertyKeyPart)keyPart);
             }
 
@@ -659,7 +670,8 @@ internal sealed class Emitter(SourceProductionContext context)
                         writer.WriteLine($"position += {c.Value.Length};");
                         break;
                     case PropertyKeyPart p:
-                        FormatStrategies[p.TypeDescriptor.FormatType].EmitSpanFormat(writer, p, "position", invariantFormatting);
+                        GetFormatStrategy(p.TypeDescriptor.FormatType)
+                            .EmitSpanFormat(writer, p, "position", invariantFormatting);
                         break;
                     default:
                         throw new InvalidOperationException();

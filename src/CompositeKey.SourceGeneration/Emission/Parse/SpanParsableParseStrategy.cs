@@ -18,7 +18,10 @@ internal sealed class SpanParsableParseStrategy : IParseStrategy
 
     public void EmitRepeatingItemParse(SourceWriter writer, PropertyKeyPart part, string itemInput, string itemVar, string listVar, bool shouldThrow)
     {
-        string innerTypeName = part.CollectionSemantics!.InnerType.FullyQualifiedName;
+        if (part.CollectionSemantics is null)
+            throw new InvalidOperationException($"{nameof(part.CollectionSemantics)} is null");
+
+        string innerTypeName = part.CollectionSemantics.InnerType.FullyQualifiedName;
 
         writer.WriteLines($"""
                            if (!{innerTypeName}.TryParse({itemInput}, out var {itemVar}))

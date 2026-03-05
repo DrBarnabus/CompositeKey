@@ -23,4 +23,13 @@ public partial class ParseStrategyTests
         result.ShouldContain("int.TryParse(item, out var itemVar)");
         result.ShouldContain("list.Add(itemVar)");
     }
+
+    [Fact]
+    public void SpanParsableParseStrategy_EmitRepeatingItemParse_ThrowsWhenCollectionSemanticsIsNull()
+    {
+        var part = CreateSpanParsablePart();
+
+        Should.Throw<InvalidOperationException>(() =>
+            EmitToString(w => SpanParsableParseStrategy.Instance.EmitRepeatingItemParse(w, part, "item", "itemVar", "list", true)));
+    }
 }
