@@ -234,7 +234,6 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
 
             CollectionSemantics? collectionSemantics = null;
             ITypeSymbol resolvedTypeSymbol;
-            string resolvedTypeName;
 
             if (isRepeating)
             {
@@ -247,7 +246,6 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
                 var namedTypeSymbol = (INamedTypeSymbol)typeSymbol;
                 var innerTypeSymbol = namedTypeSymbol.TypeArguments[0];
                 resolvedTypeSymbol = innerTypeSymbol;
-                resolvedTypeName = innerTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 collectionSemantics = new CollectionSemantics(repeatingSeparator!.Value, new TypeRef(innerTypeSymbol));
             }
             else
@@ -259,18 +257,10 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
                 }
 
                 resolvedTypeSymbol = typeSymbol;
-                resolvedTypeName = propertySpec.Type.FullyQualifiedName;
             }
 
-            var (isSpanParsable, isSpanFormattable) = PropertyValidation.DetectSpanInterfaces(resolvedTypeSymbol);
-
-            var typeInfo = new PropertyValidation.PropertyTypeInfo(
-                TypeName: resolvedTypeName,
-                IsGuid: SymbolEqualityComparer.Default.Equals(resolvedTypeSymbol, _knownTypeSymbols.GuidType),
-                IsString: SymbolEqualityComparer.Default.Equals(resolvedTypeSymbol, _knownTypeSymbols.StringType),
-                IsEnum: resolvedTypeSymbol.TypeKind == TypeKind.Enum,
-                IsSpanParsable: isSpanParsable,
-                IsSpanFormattable: isSpanFormattable);
+            var typeInfo = PropertyValidation.CreatePropertyTypeInfo(
+                resolvedTypeSymbol, _knownTypeSymbols.GuidType, _knownTypeSymbols.StringType);
 
             var formatValidation = PropertyValidation.ValidatePropertyFormat(
                 propertySpec.Name,
@@ -289,7 +279,7 @@ internal sealed class Parser(KnownTypeSymbols knownTypeSymbols)
 
             if (!typeCompatibility.IsSuccess)
             {
-                throw new NotSupportedException($"Unsupported property of type '{resolvedTypeName}'");
+                throw new NotSupportedException($"Unsupported property of type '{typeInfo.TypeName}'");
             }
 
             propertiesUsedInKey.Add(property);

@@ -165,6 +165,25 @@ public static class PropertyValidation
     }
 
     /// <summary>
+    /// Creates a PropertyTypeInfo for the given type symbol by detecting well-known types and span interfaces.
+    /// </summary>
+    public static PropertyTypeInfo CreatePropertyTypeInfo(
+        ITypeSymbol typeSymbol,
+        INamedTypeSymbol? guidType,
+        INamedTypeSymbol? stringType)
+    {
+        var (isSpanParsable, isSpanFormattable) = DetectSpanInterfaces(typeSymbol);
+
+        return new PropertyTypeInfo(
+            TypeName: typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            IsGuid: guidType is not null && SymbolEqualityComparer.Default.Equals(typeSymbol, guidType),
+            IsString: stringType is not null && SymbolEqualityComparer.Default.Equals(typeSymbol, stringType),
+            IsEnum: typeSymbol.TypeKind == TypeKind.Enum,
+            IsSpanParsable: isSpanParsable,
+            IsSpanFormattable: isSpanFormattable);
+    }
+
+    /// <summary>
     /// Detects whether a type implements ISpanParsable&lt;T&gt; and/or ISpanFormattable.
     /// </summary>
     public static (bool IsSpanParsable, bool IsSpanFormattable) DetectSpanInterfaces(ITypeSymbol typeSymbol)
