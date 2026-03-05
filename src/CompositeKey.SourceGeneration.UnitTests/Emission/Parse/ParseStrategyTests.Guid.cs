@@ -9,7 +9,7 @@ public partial class ParseStrategyTests
     public void GuidParseStrategy_EmitSingleParse_WithExactLength_EmitsStrictLengthCheck()
     {
         var part = CreateGuidPart();
-        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", true));
+        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", true, false));
 
         result.ShouldContain("input.Length != 36 || ");
         result.ShouldContain("Guid.TryParseExact(input, \"D\", out var id)");
@@ -20,7 +20,7 @@ public partial class ParseStrategyTests
     public void GuidParseStrategy_EmitSingleParse_WithoutExactLength_OmitsStrictLengthCheck()
     {
         var part = CreateGuidPart(exactLength: false);
-        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", true));
+        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", true, false));
 
         result.ShouldNotContain("input.Length !=");
         result.ShouldContain("Guid.TryParseExact(input, \"D\", out var id)");
@@ -30,7 +30,7 @@ public partial class ParseStrategyTests
     public void GuidParseStrategy_EmitSingleParse_WithShouldThrowFalse_EmitsReturnFalse()
     {
         var part = CreateGuidPart();
-        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", false));
+        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", false, false));
 
         result.ShouldContain("return false");
         result.ShouldNotContain("throw new FormatException");
@@ -40,9 +40,19 @@ public partial class ParseStrategyTests
     public void GuidParseStrategy_EmitSingleParse_UsesFormatSpecifier()
     {
         var part = CreateGuidPart(format: "N", length: 32);
-        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", true));
+        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", true, false));
 
         result.ShouldContain("Guid.TryParseExact(input, \"N\", out var id)");
+    }
+
+    [Fact]
+    public void GuidParseStrategy_EmitSingleParse_WithSkipRedundantLengthCheck_OmitsLengthCheck()
+    {
+        var part = CreateGuidPart();
+        var result = EmitToString(w => GuidParseStrategy.Instance.EmitSingleParse(w, part, "input", "id", true, true));
+
+        result.ShouldNotContain("input.Length !=");
+        result.ShouldContain("Guid.TryParseExact(input, \"D\", out var id)");
     }
 
     [Fact]

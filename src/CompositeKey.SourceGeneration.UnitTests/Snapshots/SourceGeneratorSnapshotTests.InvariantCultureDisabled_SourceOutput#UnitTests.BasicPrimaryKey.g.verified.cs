@@ -123,9 +123,6 @@ namespace UnitTests
             if (!double.TryParse(partitionKey[partitionKeyPartRanges[1]], out var secondPart))
                 throw new FormatException("Unrecognized format.");
             
-            if (sortKey.Length == 0)
-                throw new FormatException("Unrecognized format.");
-            
             string thirdPart = sortKey.ToString();
             
             return new BasicPrimaryKey(firstPart, secondPart, thirdPart);
@@ -161,9 +158,6 @@ namespace UnitTests
                 return false;
             
             if (!double.TryParse(partitionKey[partitionKeyPartRanges[1]], out var secondPart))
-                return false;
-            
-            if (sortKey.Length == 0)
                 return false;
             
             string thirdPart = sortKey.ToString();

@@ -9,7 +9,7 @@ public partial class ParseStrategyTests
     public void StringParseStrategy_EmitSingleParse_EmitsLengthCheckAndToString()
     {
         var part = CreateStringPart();
-        var result = EmitToString(w => StringParseStrategy.Instance.EmitSingleParse(w, part, "input", "name", true));
+        var result = EmitToString(w => StringParseStrategy.Instance.EmitSingleParse(w, part, "input", "name", true, false));
 
         result.ShouldContain("input.Length == 0");
         result.ShouldContain("string name = input.ToString()");
@@ -19,10 +19,20 @@ public partial class ParseStrategyTests
     public void StringParseStrategy_EmitSingleParse_WithShouldThrowFalse_EmitsReturnFalse()
     {
         var part = CreateStringPart();
-        var result = EmitToString(w => StringParseStrategy.Instance.EmitSingleParse(w, part, "input", "name", false));
+        var result = EmitToString(w => StringParseStrategy.Instance.EmitSingleParse(w, part, "input", "name", false, false));
 
         result.ShouldContain("return false");
         result.ShouldNotContain("throw new FormatException");
+    }
+
+    [Fact]
+    public void StringParseStrategy_EmitSingleParse_WithSkipRedundantLengthCheck_OmitsLengthCheck()
+    {
+        var part = CreateStringPart();
+        var result = EmitToString(w => StringParseStrategy.Instance.EmitSingleParse(w, part, "input", "name", true, true));
+
+        result.ShouldNotContain("input.Length == 0");
+        result.ShouldContain("string name = input.ToString()");
     }
 
     [Fact]

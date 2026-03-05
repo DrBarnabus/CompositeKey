@@ -11,7 +11,7 @@ public partial class ParseStrategyTests
     public void EnumParseStrategy_EmitSingleParse_EmitsHelperTryParse()
     {
         var part = CreateEnumPart();
-        var result = EmitToString(w => EnumParseStrategy.Instance.EmitSingleParse(w, part, "input", "status", true));
+        var result = EmitToString(w => EnumParseStrategy.Instance.EmitSingleParse(w, part, "input", "status", true, false));
 
         result.ShouldContain("StatusHelper.TryParse(input, out var status)");
     }
@@ -25,7 +25,7 @@ public partial class ParseStrategyTests
         };
 
         Should.Throw<InvalidOperationException>(() =>
-            EmitToString(w => EnumParseStrategy.Instance.EmitSingleParse(w, part, "input", "val", true)));
+            EmitToString(w => EnumParseStrategy.Instance.EmitSingleParse(w, part, "input", "val", true, false)));
     }
 
     [Fact]

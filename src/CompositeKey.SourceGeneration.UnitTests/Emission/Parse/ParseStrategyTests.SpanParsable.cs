@@ -9,7 +9,7 @@ public partial class ParseStrategyTests
     public void SpanParsableParseStrategy_EmitSingleParse_EmitsFullyQualifiedTryParse()
     {
         var part = CreateSpanParsablePart();
-        var result = EmitToString(w => SpanParsableParseStrategy.Instance.EmitSingleParse(w, part, "input", "count", true));
+        var result = EmitToString(w => SpanParsableParseStrategy.Instance.EmitSingleParse(w, part, "input", "count", true, false));
 
         result.ShouldContain("int.TryParse(input, out var count)");
     }

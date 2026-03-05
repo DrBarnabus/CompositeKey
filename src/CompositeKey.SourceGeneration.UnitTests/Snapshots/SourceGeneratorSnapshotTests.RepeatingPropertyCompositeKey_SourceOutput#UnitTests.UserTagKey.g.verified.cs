@@ -175,7 +175,7 @@ namespace UnitTests
             if (sortKey.Split(sortKeyPartRanges, '_', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) != expectedSortKeyParts)
                 throw new FormatException("Unrecognized format.");
             
-            if (partitionKey.Length != 36 || !Guid.TryParseExact(partitionKey, "d", out var userId))
+            if (!Guid.TryParseExact(partitionKey, "d", out var userId))
                 throw new FormatException("Unrecognized format.");
             
             if (!sortKey[sortKeyPartRanges[0]].Equals("TAG", StringComparison.Ordinal))
@@ -226,7 +226,7 @@ namespace UnitTests
             if (sortKey.Split(sortKeyPartRanges, '_', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) != expectedSortKeyParts)
                 return false;
             
-            if (partitionKey.Length != 36 || !Guid.TryParseExact(partitionKey, "d", out var userId))
+            if (!Guid.TryParseExact(partitionKey, "d", out var userId))
                 return false;
             
             if (!sortKey[sortKeyPartRanges[0]].Equals("TAG", StringComparison.Ordinal))

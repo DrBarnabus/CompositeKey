@@ -7,7 +7,7 @@ internal sealed class EnumParseStrategy : IParseStrategy
 {
     public static readonly EnumParseStrategy Instance = new();
 
-    public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow)
+    public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow, bool skipRedundantLengthCheck)
     {
         if (part.Property.EnumSpec is null)
             throw new InvalidOperationException($"{nameof(part.Property.EnumSpec)} is null");

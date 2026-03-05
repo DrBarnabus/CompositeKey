@@ -7,7 +7,7 @@ internal sealed class SpanParsableParseStrategy : IParseStrategy
 {
     public static readonly SpanParsableParseStrategy Instance = new();
 
-    public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow)
+    public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow, bool skipRedundantLengthCheck)
     {
         writer.WriteLines($"""
                            if (!{part.Property.Type.FullyQualifiedName}.TryParse({inputVar}, out var {outputVar}))
