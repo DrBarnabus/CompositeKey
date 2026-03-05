@@ -54,4 +54,27 @@ public partial class ParseStrategyTests
         result.ShouldContain("Guid.TryParseExact(item, \"D\", out var itemVar)");
         result.ShouldContain("list.Add(itemVar)");
     }
+
+    [Fact]
+    public void GuidParseStrategy_EmitRepeatingItemParse_WithExactLength_EmitsStrictLengthCheck()
+    {
+        var part = CreateRepeatingPart(ParseType.Guid, FormatType.Guid) with
+        {
+            ExactLengthRequirement = true,
+            LengthRequired = 36
+        };
+        var result = EmitToString(w => GuidParseStrategy.Instance.EmitRepeatingItemParse(w, part, "item", "itemVar", "list", true));
+
+        result.ShouldContain("item.Length != 36 || ");
+        result.ShouldContain("Guid.TryParseExact(item, \"D\", out var itemVar)");
+    }
+
+    [Fact]
+    public void GuidParseStrategy_EmitRepeatingItemParse_WithoutExactLength_OmitsStrictLengthCheck()
+    {
+        var part = CreateRepeatingPart(ParseType.Guid, FormatType.Guid);
+        var result = EmitToString(w => GuidParseStrategy.Instance.EmitRepeatingItemParse(w, part, "item", "itemVar", "list", true));
+
+        result.ShouldNotContain("item.Length !=");
+    }
 }
