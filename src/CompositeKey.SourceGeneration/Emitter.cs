@@ -435,8 +435,9 @@ internal sealed class Emitter(SourceProductionContext context)
     private static void WriteParsePropertiesImplementation(
         SourceWriter writer, List<KeyPart> parts, Func<string, string> getPartInputVariable, bool shouldThrow, Dictionary<string, int> propertyNameCounts, string? inputPartCountVariable = null)
     {
+        bool skipRedundantLengthCheck = parts.Count == 1;
+
         var valueParts = parts.OfType<ValueKeyPart>().ToArray();
-        bool skipRedundantLengthCheck = valueParts.Length == 1 && parts.Count == 1;
         for (int i = 0; i < valueParts.Length; i++)
         {
             var valueKeyPart = valueParts[i];
