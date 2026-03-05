@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using CompositeKey.Analyzers.Common;
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Model;
 using Microsoft.CodeAnalysis;

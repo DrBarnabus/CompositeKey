@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using CompositeKey.Analyzers.Common;
 using CompositeKey.Analyzers.Common.Diagnostics;
 using CompositeKey.Analyzers.Common.Validation;
 using CompositeKey.Analyzers.Infrastructure;
@@ -33,20 +34,17 @@ public sealed class TypeStructureAnalyzer : CompositeKeyAnalyzerBase
     /// <param name="compositeKeyAttribute">The CompositeKey attribute data.</param>
     protected override void AnalyzeCompositeKeyType(
         SyntaxNodeAnalysisContext context,
+        KnownTypeSymbols knownTypeSymbols,
         TypeDeclarationSyntax typeDeclaration,
         INamedTypeSymbol typeSymbol,
         AttributeData? compositeKeyAttribute)
     {
-        // Resolve the CompositeKeyConstructor attribute type for constructor validation
-        var compositeKeyConstructorAttributeType = context.Compilation
-            .GetTypeByMetadataName("CompositeKey.CompositeKeyConstructorAttribute");
-
         // Use shared type validation logic to validate the type structure and constructor selection
         var validationResult = TypeValidation.ValidateTypeForCompositeKey(
             typeSymbol,
             typeDeclaration,
             context.SemanticModel,
-            compositeKeyConstructorAttributeType,
+            knownTypeSymbols.CompositeKeyConstructorAttributeType,
             context.CancellationToken);
 
         // Report any validation failures with precise location targeting

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using CompositeKey.Analyzers.Common;
 using CompositeKey.Analyzers.Common.Validation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -27,18 +28,28 @@ public abstract class CompositeKeyAnalyzerBase : DiagnosticAnalyzer
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.RecordDeclaration, SyntaxKind.ClassDeclaration);
+        context.RegisterCompilationStartAction(compilationContext =>
+        {
+            var knownTypeSymbols = new KnownTypeSymbols(compilationContext.Compilation);
+
+            compilationContext.RegisterSyntaxNodeAction(
+                nodeContext => AnalyzeTypeDeclaration(nodeContext, knownTypeSymbols),
+                SyntaxKind.RecordDeclaration,
+                SyntaxKind.ClassDeclaration);
+        });
     }
 
     /// <summary>
     /// Abstract method that derived analyzers implement to perform their specific analysis.
     /// </summary>
     /// <param name="context">The syntax node analysis context.</param>
+    /// <param name="knownTypeSymbols">Shared type symbols resolved from the compilation.</param>
     /// <param name="typeDeclaration">The type declaration being analyzed.</param>
     /// <param name="typeSymbol">The symbol for the type declaration.</param>
     /// <param name="compositeKeyAttribute">The CompositeKey attribute if present, null otherwise.</param>
     protected abstract void AnalyzeCompositeKeyType(
         SyntaxNodeAnalysisContext context,
+        KnownTypeSymbols knownTypeSymbols,
         TypeDeclarationSyntax typeDeclaration,
         INamedTypeSymbol typeSymbol,
         AttributeData? compositeKeyAttribute);
@@ -47,7 +58,7 @@ public abstract class CompositeKeyAnalyzerBase : DiagnosticAnalyzer
     /// Analyzes a type declaration to determine if it has a CompositeKey attribute
     /// and delegates to the derived analyzer if it does.
     /// </summary>
-    private void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
+    private void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context, KnownTypeSymbols knownTypeSymbols)
     {
         var typeDeclaration = (TypeDeclarationSyntax)context.Node;
         var typeSymbol = context.SemanticModel.GetDeclaredSymbol(typeDeclaration, context.CancellationToken);
@@ -55,24 +66,24 @@ public abstract class CompositeKeyAnalyzerBase : DiagnosticAnalyzer
         if (typeSymbol is null)
             return;
 
-        var compositeKeyAttribute = FindCompositeKeyAttribute(typeSymbol);
+        var compositeKeyAttribute = FindCompositeKeyAttribute(knownTypeSymbols, typeSymbol);
         if (compositeKeyAttribute is null)
             return;
 
-        AnalyzeCompositeKeyType(context, typeDeclaration, typeSymbol, compositeKeyAttribute);
+        AnalyzeCompositeKeyType(context, knownTypeSymbols, typeDeclaration, typeSymbol, compositeKeyAttribute);
     }
 
     /// <summary>
-    /// Finds the CompositeKey attribute on a type symbol.
+    /// Finds the CompositeKey attribute on a type symbol using symbol equality.
     /// </summary>
-    /// <param name="typeSymbol">The type symbol to examine.</param>
-    /// <returns>The CompositeKey attribute data if found, null otherwise.</returns>
-    protected static AttributeData? FindCompositeKeyAttribute(INamedTypeSymbol typeSymbol)
+    private static AttributeData? FindCompositeKeyAttribute(KnownTypeSymbols knownTypeSymbols, INamedTypeSymbol typeSymbol)
     {
-        const string CompositeKeyAttributeName = "CompositeKey.CompositeKeyAttribute";
+        var compositeKeyAttributeType = knownTypeSymbols.CompositeKeyAttributeType;
+        if (compositeKeyAttributeType is null)
+            return null;
 
         return typeSymbol.GetAttributes()
-            .FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == CompositeKeyAttributeName);
+            .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, compositeKeyAttributeType));
     }
 
 

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using CompositeKey.Analyzers.Common;
 using CompositeKey.Analyzers.Common.Diagnostics;
 using CompositeKey.Analyzers.Common.Validation;
 using CompositeKey.Analyzers.Infrastructure;
@@ -27,11 +28,13 @@ public sealed class TemplateStringAnalyzer : CompositeKeyAnalyzerBase
     /// Analyzes a CompositeKey-annotated type for template string requirements.
     /// </summary>
     /// <param name="context">The syntax node analysis context.</param>
+    /// <param name="knownTypeSymbols">Shared type symbols resolved from the compilation.</param>
     /// <param name="typeDeclaration">The type declaration being analyzed.</param>
     /// <param name="typeSymbol">The symbol for the type declaration.</param>
     /// <param name="compositeKeyAttribute">The CompositeKey attribute data.</param>
     protected override void AnalyzeCompositeKeyType(
         SyntaxNodeAnalysisContext context,
+        KnownTypeSymbols knownTypeSymbols,
         TypeDeclarationSyntax typeDeclaration,
         INamedTypeSymbol typeSymbol,
         AttributeData? compositeKeyAttribute)
