@@ -34,7 +34,12 @@ public static class EnumGenerationHelper
 
         if (enumSpec.IsSequentialFromZero)
         {
-            writer.WriteLine("return Lengths[(uint)value];");
+            writer.WriteLines("""
+                              if ((uint)value >= Lengths.Length)
+                                  throw new ArgumentOutOfRangeException(nameof(value), value, "The value provided is out of range.");
+
+                              return Lengths[(uint)value];
+                              """);
         }
         else
         {

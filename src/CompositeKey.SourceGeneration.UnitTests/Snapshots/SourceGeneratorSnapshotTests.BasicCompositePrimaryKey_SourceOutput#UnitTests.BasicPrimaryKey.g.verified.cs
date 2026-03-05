@@ -270,6 +270,9 @@ namespace UnitTests
 
         public static int GetFormattedLength(global::UnitTests.CustomEnum value)
         {
+            if ((uint)value >= Lengths.Length)
+                throw new ArgumentOutOfRangeException(nameof(value), value, "The value provided is out of range.");
+            
             return Lengths[(uint)value];
         }
 
