@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using CompositeKey.Analyzers.Common;
 using CompositeKey.Analyzers.Common.Diagnostics;
 using CompositeKey.Analyzers.Common.Tokenization;
 using CompositeKey.Analyzers.Common.Validation;
@@ -34,6 +35,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
     /// <param name="compositeKeyAttribute">The CompositeKey attribute data.</param>
     protected override void AnalyzeCompositeKeyType(
         SyntaxNodeAnalysisContext context,
+        KnownTypeSymbols knownTypeSymbols,
         TypeDeclarationSyntax typeDeclaration,
         INamedTypeSymbol typeSymbol,
         AttributeData? compositeKeyAttribute)
@@ -78,7 +80,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
                 }
 
                 // Check if a regular property is a repeating type (should use repeating syntax)
-                var repeatingTypeInfo = CreateRepeatingPropertyTypeInfo(property, context.Compilation);
+                var repeatingTypeInfo = CreateRepeatingPropertyTypeInfo(property, knownTypeSymbols);
                 var nonRepeatingResult = PropertyValidation.ValidateNonRepeatingPropertyType(
                     property.Name,
                     repeatingTypeInfo);
@@ -92,9 +94,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
                         nonRepeatingResult);
                 }
 
-                var guidType = context.Compilation.GetTypeByMetadataName("System.Guid");
-                var stringType = context.Compilation.GetSpecialType(SpecialType.System_String);
-                var typeInfo = PropertyValidation.CreatePropertyTypeInfo(property.Type, guidType, stringType);
+                var typeInfo = PropertyValidation.CreatePropertyTypeInfo(property.Type, knownTypeSymbols.GuidType, knownTypeSymbols.StringType);
 
                 if (!string.IsNullOrEmpty(propertyToken.Format))
                 {
@@ -148,7 +148,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
                 }
 
                 // Check if the property is a valid repeating type
-                var repeatingTypeInfo = CreateRepeatingPropertyTypeInfo(property, context.Compilation);
+                var repeatingTypeInfo = CreateRepeatingPropertyTypeInfo(property, knownTypeSymbols);
                 var repeatingResult = PropertyValidation.ValidateRepeatingPropertyType(
                     property.Name,
                     repeatingTypeInfo);
@@ -168,9 +168,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
                     continue;
 
                 var innerType = namedType.TypeArguments[0];
-                var innerGuidType = context.Compilation.GetTypeByMetadataName("System.Guid");
-                var innerStringType = context.Compilation.GetSpecialType(SpecialType.System_String);
-                var innerTypeInfo = PropertyValidation.CreatePropertyTypeInfo(innerType, innerGuidType, innerStringType);
+                var innerTypeInfo = PropertyValidation.CreatePropertyTypeInfo(innerType, knownTypeSymbols.GuidType, knownTypeSymbols.StringType);
 
                 if (!string.IsNullOrEmpty(repeatingToken.Format))
                 {
@@ -249,7 +247,7 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
     /// </summary>
     private static PropertyValidation.RepeatingPropertyTypeInfo CreateRepeatingPropertyTypeInfo(
         IPropertySymbol property,
-        Compilation compilation)
+        KnownTypeSymbols knownTypeSymbols)
     {
         var propertyType = property.Type;
 
@@ -264,15 +262,11 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
 
         var originalDefinition = namedType.OriginalDefinition;
 
-        var listType = compilation.GetTypeByMetadataName("System.Collections.Generic.List`1");
-        var readOnlyListType = compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyList`1");
-        var immutableArrayType = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray`1");
-
         return new PropertyValidation.RepeatingPropertyTypeInfo(
             TypeName: propertyType.ToDisplayString(),
-            IsList: listType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, listType),
-            IsReadOnlyList: readOnlyListType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, readOnlyListType),
-            IsImmutableArray: immutableArrayType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, immutableArrayType));
+            IsList: knownTypeSymbols.ListType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, knownTypeSymbols.ListType),
+            IsReadOnlyList: knownTypeSymbols.ReadOnlyListType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, knownTypeSymbols.ReadOnlyListType),
+            IsImmutableArray: knownTypeSymbols.ImmutableArrayType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, knownTypeSymbols.ImmutableArrayType));
     }
 
     /// <summary>

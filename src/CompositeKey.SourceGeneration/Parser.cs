@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using CompositeKey.Analyzers.Common;
 using CompositeKey.Analyzers.Common.Diagnostics;
 using CompositeKey.Analyzers.Common.Tokenization;
 using CompositeKey.Analyzers.Common.Validation;
