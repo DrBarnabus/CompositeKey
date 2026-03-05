@@ -1,7 +1,7 @@
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Model.Key;
 
-namespace CompositeKey.SourceGeneration.Emission;
+namespace CompositeKey.SourceGeneration.Emission.Format;
 
 internal sealed class GuidFormatStrategy : IFormatStrategy
 {
@@ -12,7 +12,7 @@ internal sealed class GuidFormatStrategy : IFormatStrategy
     public bool SupportsSpanFormat(PropertyKeyPart part) => part.ExactLengthRequirement;
 
     public string GetVariableLengthExpression(PropertyKeyPart part) =>
-        throw new InvalidOperationException("Guid types with variable length are not supported in span format path.");
+        throw new InvalidOperationException("Unreachable: Guid always has an exact length requirement.");
 
     public void EmitSpanFormat(SourceWriter writer, PropertyKeyPart part, string positionVar, bool invariantFormatting)
     {

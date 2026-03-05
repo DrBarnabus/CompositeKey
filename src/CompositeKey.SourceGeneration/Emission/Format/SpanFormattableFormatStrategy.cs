@@ -1,7 +1,7 @@
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Model.Key;
 
-namespace CompositeKey.SourceGeneration.Emission;
+namespace CompositeKey.SourceGeneration.Emission.Format;
 
 internal sealed class SpanFormattableFormatStrategy : IFormatStrategy
 {
@@ -10,8 +10,8 @@ internal sealed class SpanFormattableFormatStrategy : IFormatStrategy
     public bool SupportsSpanFormat(PropertyKeyPart part) => false;
 
     public string GetVariableLengthExpression(PropertyKeyPart part) =>
-        throw new InvalidOperationException("SpanFormattable types do not support span format path.");
+        throw new InvalidOperationException("Unreachable: SpanFormattable types are not eligible for the span format path.");
 
     public void EmitSpanFormat(SourceWriter writer, PropertyKeyPart part, string positionVar, bool invariantFormatting) =>
-        throw new InvalidOperationException("SpanFormattable types do not support span format path.");
+        throw new InvalidOperationException("Unreachable: SpanFormattable types are not eligible for the span format path.");
 }

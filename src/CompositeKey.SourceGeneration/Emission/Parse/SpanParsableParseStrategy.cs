@@ -1,29 +1,29 @@
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Model.Key;
 
-namespace CompositeKey.SourceGeneration.Emission;
+namespace CompositeKey.SourceGeneration.Emission.Parse;
 
-internal sealed class StringParseStrategy : IParseStrategy
+internal sealed class SpanParsableParseStrategy : IParseStrategy
 {
-    public static readonly StringParseStrategy Instance = new();
+    public static readonly SpanParsableParseStrategy Instance = new();
 
     public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow)
     {
         writer.WriteLines($"""
-                           if ({inputVar}.Length == 0)
+                           if (!{part.Property.Type.FullyQualifiedName}.TryParse({inputVar}, out var {outputVar}))
                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-
-                           string {outputVar} = {inputVar}.ToString();
 
                            """);
     }
 
     public void EmitRepeatingItemParse(SourceWriter writer, PropertyKeyPart part, string itemInput, string itemVar, string listVar, bool shouldThrow)
     {
+        string innerTypeName = part.CollectionSemantics!.InnerType.FullyQualifiedName;
+
         writer.WriteLines($"""
-                           if ({itemInput}.Length == 0)
+                           if (!{innerTypeName}.TryParse({itemInput}, out var {itemVar}))
                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                           {listVar}.Add({itemInput}.ToString());
+                           {listVar}.Add({itemVar});
                            """);
     }
 }

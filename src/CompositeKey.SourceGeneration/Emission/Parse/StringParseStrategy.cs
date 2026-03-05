@@ -1,33 +1,29 @@
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Model.Key;
 
-namespace CompositeKey.SourceGeneration.Emission;
+namespace CompositeKey.SourceGeneration.Emission.Parse;
 
-internal sealed class EnumParseStrategy : IParseStrategy
+internal sealed class StringParseStrategy : IParseStrategy
 {
-    public static readonly EnumParseStrategy Instance = new();
+    public static readonly StringParseStrategy Instance = new();
 
     public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow)
     {
-        if (part.Property.EnumSpec is null)
-            throw new InvalidOperationException($"{nameof(part.Property.EnumSpec)} is null");
-
         writer.WriteLines($"""
-                           if (!{part.Property.EnumSpec.Name}Helper.TryParse({inputVar}, out var {outputVar}))
+                           if ({inputVar}.Length == 0)
                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+
+                           string {outputVar} = {inputVar}.ToString();
 
                            """);
     }
 
     public void EmitRepeatingItemParse(SourceWriter writer, PropertyKeyPart part, string itemInput, string itemVar, string listVar, bool shouldThrow)
     {
-        if (part.Property.EnumSpec is null)
-            throw new InvalidOperationException($"{nameof(part.Property.EnumSpec)} is null");
-
         writer.WriteLines($"""
-                           if (!{part.Property.EnumSpec.Name}Helper.TryParse({itemInput}, out var {itemVar}))
+                           if ({itemInput}.Length == 0)
                                {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                           {listVar}.Add({itemVar});
+                           {listVar}.Add({itemInput}.ToString());
                            """);
     }
 }

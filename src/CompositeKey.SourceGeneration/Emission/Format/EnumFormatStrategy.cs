@@ -1,7 +1,7 @@
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Model.Key;
 
-namespace CompositeKey.SourceGeneration.Emission;
+namespace CompositeKey.SourceGeneration.Emission.Format;
 
 internal sealed class EnumFormatStrategy : IFormatStrategy
 {
