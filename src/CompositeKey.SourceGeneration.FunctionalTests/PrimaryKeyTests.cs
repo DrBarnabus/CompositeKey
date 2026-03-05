@@ -569,6 +569,28 @@ public static class PrimaryKeyTests
         ["LOCATION"]
     ];
 
+    [Fact]
+    public static void HierarchicalLocationKey_Parse_WithBufferExhaustion_ShouldThrowFormatException()
+    {
+        var guids = Enumerable.Range(0, 128).Select(_ => Guid.NewGuid()).ToList();
+        string input = $"LOCATION#{string.Join('#', guids)}";
+
+        var act = () => HierarchicalLocationKey.Parse(input);
+
+        act.ShouldThrow<FormatException>().Message.ShouldContain("maximum supported item count");
+    }
+
+    [Fact]
+    public static void HierarchicalLocationKey_TryParse_WithBufferExhaustion_ShouldReturnFalse()
+    {
+        var guids = Enumerable.Range(0, 128).Select(_ => Guid.NewGuid()).ToList();
+        string input = $"LOCATION#{string.Join('#', guids)}";
+
+        HierarchicalLocationKey.TryParse(input, out var result).ShouldBeFalse();
+
+        result.ShouldBeNull();
+    }
+
     #endregion
 
     #region TaggedEntityKey
@@ -1043,6 +1065,28 @@ public static class PrimaryKeyTests
         ["SCORES#abc"],
         ["SCORES#"]
     ];
+
+    [Fact]
+    public static void RepeatingIntPrimaryKey_Parse_WithBufferExhaustion_ShouldThrowFormatException()
+    {
+        string scores = string.Join(',', Enumerable.Range(1, 128));
+        string input = $"SCORES#{scores}";
+
+        var act = () => RepeatingIntPrimaryKey.Parse(input);
+
+        act.ShouldThrow<FormatException>().Message.ShouldContain("maximum supported item count");
+    }
+
+    [Fact]
+    public static void RepeatingIntPrimaryKey_TryParse_WithBufferExhaustion_ShouldReturnFalse()
+    {
+        string scores = string.Join(',', Enumerable.Range(1, 128));
+        string input = $"SCORES#{scores}";
+
+        RepeatingIntPrimaryKey.TryParse(input, out var result).ShouldBeFalse();
+
+        result.ShouldBeNull();
+    }
 
     #endregion
 

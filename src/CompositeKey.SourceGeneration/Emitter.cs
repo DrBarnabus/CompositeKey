@@ -376,6 +376,8 @@ internal sealed class Emitter(SourceProductionContext context)
                                    int {partCountVariableName} = {inputName}.{method}({partRangesVariableName}, {delimiters}, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                    if ({partCountVariableName} < {minPartsVariable})
                                        {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                   if ({partCountVariableName} == 128)
+                                       {(shouldThrow ? "throw new FormatException(\"Repeating section exceeds the maximum supported item count (127).\")" : "return false")};
 
                                    """);
             }
@@ -524,6 +526,8 @@ internal sealed class Emitter(SourceProductionContext context)
                                    int {repeatingCountVar} = {partInputVariable}.Split({repeatingRangesVar}, '{collection.Separator}', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                    if ({repeatingCountVar} < 1)
                                        {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+                                   if ({repeatingCountVar} == 128)
+                                       {(shouldThrow ? "throw new FormatException(\"Repeating section exceeds the maximum supported item count (127).\")" : "return false")};
 
                                    var {listVar} = new global::System.Collections.Generic.List<{innerTypeName}>();
                                    """);
