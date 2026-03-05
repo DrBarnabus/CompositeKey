@@ -79,81 +79,73 @@ internal sealed class Emitter(SourceProductionContext context)
         WriteFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString()", keyParts, keySpec.InvariantFormatting);
         WriteDynamicFormatMethodBodyForKeyParts(writer, "public string ToPartitionKeyString(int throughPartIndex, bool includeTrailingDelimiter = true)", keyParts, keySpec.InvariantFormatting);
 
-        WriteParseMethodImplementation();
-        WriteTryParseMethodImplementation();
+        WriteParseOrTryParseImplementation(shouldThrow: true);
+        WriteParseOrTryParseImplementation(shouldThrow: false);
 
         return;
 
-        void WriteParseMethodImplementation()
+        void WriteParseOrTryParseImplementation(bool shouldThrow)
         {
-            writer.WriteLines($$"""
-                                public static {{targetTypeSpec.TypeName}} Parse(string primaryKey)
-                                {
-                                    ArgumentNullException.ThrowIfNull(primaryKey);
-
-                                    return Parse((ReadOnlySpan<char>)primaryKey);
-                                }
-
-                                public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> primaryKey)
-                                {
-                                """);
-            writer.Indentation++;
-
-            WriteLengthCheck(writer, keyParts, "primaryKey", true);
-
-            Func<string, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
-            string? primaryKeyPartCountVariable = null;
-            if (keyParts.Count > 1)
+            if (shouldThrow)
             {
-                WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, true, out primaryKeyPartCountVariable);
-                getPrimaryKeyPartInputVariable = indexExpr => $"primaryKey[{primaryKeyPartRangesVariable}[{indexExpr}]]";
-            }
-
-            WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, true, primaryKeyPartCountVariable);
-
-            writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
-
-            writer.EndBlock();
-            writer.WriteLine();
-        }
-
-        void WriteTryParseMethodImplementation()
-        {
-            writer.WriteLines($$"""
-                                public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
-                                {
-                                    if (primaryKey is null)
+                writer.WriteLines($$"""
+                                    public static {{targetTypeSpec.TypeName}} Parse(string primaryKey)
                                     {
-                                        result = null;
-                                        return false;
+                                        ArgumentNullException.ThrowIfNull(primaryKey);
+
+                                        return Parse((ReadOnlySpan<char>)primaryKey);
                                     }
 
-                                    return TryParse((ReadOnlySpan<char>)primaryKey, out result);
-                                }
+                                    public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> primaryKey)
+                                    {
+                                    """);
+            }
+            else
+            {
+                writer.WriteLines($$"""
+                                    public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
+                                    {
+                                        if (primaryKey is null)
+                                        {
+                                            result = null;
+                                            return false;
+                                        }
 
-                                public static bool TryParse(ReadOnlySpan<char> primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
-                                {
-                                    result = null;
+                                        return TryParse((ReadOnlySpan<char>)primaryKey, out result);
+                                    }
 
-                                """);
+                                    public static bool TryParse(ReadOnlySpan<char> primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
+                                    {
+                                        result = null;
+
+                                    """);
+            }
+
             writer.Indentation++;
 
-            WriteLengthCheck(writer, keyParts, "primaryKey", false);
+            WriteLengthCheck(writer, keyParts, "primaryKey", shouldThrow);
 
             Func<string, string> getPrimaryKeyPartInputVariable = static _ => "primaryKey";
             string? primaryKeyPartCountVariable = null;
             if (keyParts.Count > 1)
             {
-                WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, false, out primaryKeyPartCountVariable);
+                WriteSplitImplementation(writer, keyParts, "primaryKey", out string primaryKeyPartRangesVariable, shouldThrow, out primaryKeyPartCountVariable);
                 getPrimaryKeyPartInputVariable = indexExpr => $"primaryKey[{primaryKeyPartRangesVariable}[{indexExpr}]]";
             }
 
-            WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, false, primaryKeyPartCountVariable);
+            WriteParsePropertiesImplementation(writer, keyParts, getPrimaryKeyPartInputVariable, shouldThrow, primaryKeyPartCountVariable);
 
-            writer.WriteLines($"""
-                               result = {WriteConstructor(targetTypeSpec)};
-                               return true;
-                               """);
+            if (shouldThrow)
+            {
+                writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
+            }
+            else
+            {
+                writer.WriteLines($"""
+                                   result = {WriteConstructor(targetTypeSpec)};
+                                   return true;
+                                   """);
+            }
 
             writer.EndBlock();
             writer.WriteLine();
@@ -171,10 +163,10 @@ internal sealed class Emitter(SourceProductionContext context)
         WriteFormatMethodBodyForKeyParts(writer, "public string ToSortKeyString()", sortKeyParts, keySpec.InvariantFormatting);
         WriteDynamicFormatMethodBodyForKeyParts(writer, "public string ToSortKeyString(int throughPartIndex, bool includeTrailingDelimiter = true)", sortKeyParts, keySpec.InvariantFormatting);
 
-        WriteParseMethodImplementation();
-        WriteTryParseMethodImplementation();
-        WriteCompositeParseMethodImplementation();
-        WriteCompositeTryParseMethodImplementation();
+        WriteParseOrTryParseImplementation(shouldThrow: true);
+        WriteParseOrTryParseImplementation(shouldThrow: false);
+        WriteCompositeParseOrTryParseImplementation(shouldThrow: true);
+        WriteCompositeParseOrTryParseImplementation(shouldThrow: false);
 
         return;
 
@@ -189,82 +181,104 @@ internal sealed class Emitter(SourceProductionContext context)
                                """);
         }
 
-        void WriteParseMethodImplementation()
+        void WriteParseOrTryParseImplementation(bool shouldThrow)
         {
-            writer.WriteLines($$"""
-                                public static {{targetTypeSpec.TypeName}} Parse(string primaryKey)
-                                {
-                                    ArgumentNullException.ThrowIfNull(primaryKey);
-
-                                    return Parse((ReadOnlySpan<char>)primaryKey);
-                                }
-
-                                public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> primaryKey)
-                                {
-                                """);
-            writer.Indentation++;
-
-            WritePrimaryKeySplit(true);
-
-            writer.WriteLine("return Parse(primaryKey[primaryKeyPartRanges[0]], primaryKey[primaryKeyPartRanges[1]]);");
-
-            writer.EndBlock();
-            writer.WriteLine();
-        }
-
-        void WriteTryParseMethodImplementation()
-        {
-            writer.WriteLines($$"""
-                                public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
-                                {
-                                    if (primaryKey is null)
+            if (shouldThrow)
+            {
+                writer.WriteLines($$"""
+                                    public static {{targetTypeSpec.TypeName}} Parse(string primaryKey)
                                     {
-                                        result = null;
-                                        return false;
+                                        ArgumentNullException.ThrowIfNull(primaryKey);
+
+                                        return Parse((ReadOnlySpan<char>)primaryKey);
                                     }
 
-                                    return TryParse((ReadOnlySpan<char>)primaryKey, out result);
-                                }
+                                    public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> primaryKey)
+                                    {
+                                    """);
+            }
+            else
+            {
+                writer.WriteLines($$"""
+                                    public static bool TryParse([{{NotNullWhen}}(true)] string? primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
+                                    {
+                                        if (primaryKey is null)
+                                        {
+                                            result = null;
+                                            return false;
+                                        }
 
-                                public static bool TryParse(ReadOnlySpan<char> primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
-                                {
-                                    result = null;
+                                        return TryParse((ReadOnlySpan<char>)primaryKey, out result);
+                                    }
 
-                                """);
+                                    public static bool TryParse(ReadOnlySpan<char> primaryKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
+                                    {
+                                        result = null;
+
+                                    """);
+            }
+
             writer.Indentation++;
 
-            WritePrimaryKeySplit(false);
+            WritePrimaryKeySplit(shouldThrow);
 
-            writer.WriteLine("return TryParse(primaryKey[primaryKeyPartRanges[0]], primaryKey[primaryKeyPartRanges[1]], out result);");
+            if (shouldThrow)
+                writer.WriteLine("return Parse(primaryKey[primaryKeyPartRanges[0]], primaryKey[primaryKeyPartRanges[1]]);");
+            else
+                writer.WriteLine("return TryParse(primaryKey[primaryKeyPartRanges[0]], primaryKey[primaryKeyPartRanges[1]], out result);");
 
             writer.EndBlock();
             writer.WriteLine();
         }
 
-        void WriteCompositeParseMethodImplementation()
+        void WriteCompositeParseOrTryParseImplementation(bool shouldThrow)
         {
-            writer.WriteLines($$"""
-                                public static {{targetTypeSpec.TypeName}} Parse(string partitionKey, string sortKey)
-                                {
-                                    ArgumentNullException.ThrowIfNull(partitionKey);
-                                    ArgumentNullException.ThrowIfNull(sortKey);
+            if (shouldThrow)
+            {
+                writer.WriteLines($$"""
+                                    public static {{targetTypeSpec.TypeName}} Parse(string partitionKey, string sortKey)
+                                    {
+                                        ArgumentNullException.ThrowIfNull(partitionKey);
+                                        ArgumentNullException.ThrowIfNull(sortKey);
 
-                                    return Parse((ReadOnlySpan<char>)partitionKey, (ReadOnlySpan<char>)sortKey);
-                                }
+                                        return Parse((ReadOnlySpan<char>)partitionKey, (ReadOnlySpan<char>)sortKey);
+                                    }
 
-                                public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey)
-                                {
-                                """);
+                                    public static {{targetTypeSpec.TypeName}} Parse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey)
+                                    {
+                                    """);
+            }
+            else
+            {
+                writer.WriteLines($$"""
+                                    public static bool TryParse([{{NotNullWhen}}(true)] string partitionKey, string sortKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
+                                    {
+                                        if (partitionKey is null || sortKey is null)
+                                        {
+                                            result = null;
+                                            return false;
+                                        }
+
+                                        return TryParse((ReadOnlySpan<char>)partitionKey, (ReadOnlySpan<char>)sortKey, out result);
+                                    }
+
+                                    public static bool TryParse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
+                                    {
+                                        result = null;
+
+                                    """);
+            }
+
             writer.Indentation++;
 
-            WriteLengthCheck(writer, partitionKeyParts, "partitionKey", true);
-            WriteLengthCheck(writer, sortKeyParts, "sortKey", true);
+            WriteLengthCheck(writer, partitionKeyParts, "partitionKey", shouldThrow);
+            WriteLengthCheck(writer, sortKeyParts, "sortKey", shouldThrow);
 
             Func<string, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
             string? partitionKeyPartCountVariable = null;
             if (partitionKeyParts.Count > 1)
             {
-                WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, true, out partitionKeyPartCountVariable);
+                WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, shouldThrow, out partitionKeyPartCountVariable);
                 getPartitionKeyPartInputVariable = indexExpr => $"partitionKey[{partitionKeyPartRangesVariable}[{indexExpr}]]";
             }
 
@@ -272,68 +286,25 @@ internal sealed class Emitter(SourceProductionContext context)
             string? sortKeyPartCountVariable = null;
             if (sortKeyParts.Count > 1)
             {
-                WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, true, out sortKeyPartCountVariable);
+                WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, shouldThrow, out sortKeyPartCountVariable);
                 getSortKeyPartInputVariable = indexExpr => $"sortKey[{sortKeyPartRangesVariable}[{indexExpr}]]";
             }
 
             var propertyNameCounts = partitionKeyParts.Concat(sortKeyParts).OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
-            WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, true, propertyNameCounts, partitionKeyPartCountVariable);
-            WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, true, propertyNameCounts, sortKeyPartCountVariable);
+            WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, shouldThrow, propertyNameCounts, partitionKeyPartCountVariable);
+            WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, shouldThrow, propertyNameCounts, sortKeyPartCountVariable);
 
-            writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
-
-            writer.EndBlock();
-            writer.WriteLine();
-        }
-
-        void WriteCompositeTryParseMethodImplementation()
-        {
-            writer.WriteLines($$"""
-                                public static bool TryParse([{{NotNullWhen}}(true)] string partitionKey, string sortKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
-                                {
-                                    if (partitionKey is null || sortKey is null)
-                                    {
-                                        result = null;
-                                        return false;
-                                    }
-
-                                    return TryParse((ReadOnlySpan<char>)partitionKey, (ReadOnlySpan<char>)sortKey, out result);
-                                }
-
-                                public static bool TryParse(ReadOnlySpan<char> partitionKey, ReadOnlySpan<char> sortKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
-                                {
-                                    result = null;
-
-                                """);
-            writer.Indentation++;
-
-            WriteLengthCheck(writer, partitionKeyParts, "partitionKey", false);
-            WriteLengthCheck(writer, sortKeyParts, "sortKey", false);
-
-            Func<string, string> getPartitionKeyPartInputVariable = static _ => "partitionKey";
-            string? partitionKeyPartCountVariable = null;
-            if (partitionKeyParts.Count > 1)
+            if (shouldThrow)
             {
-                WriteSplitImplementation(writer, partitionKeyParts, "partitionKey", out string partitionKeyPartRangesVariable, false, out partitionKeyPartCountVariable);
-                getPartitionKeyPartInputVariable = indexExpr => $"partitionKey[{partitionKeyPartRangesVariable}[{indexExpr}]]";
+                writer.WriteLine($"return {WriteConstructor(targetTypeSpec)};");
             }
-
-            Func<string, string> getSortKeyPartInputVariable = static _ => "sortKey";
-            string? sortKeyPartCountVariable = null;
-            if (sortKeyParts.Count > 1)
+            else
             {
-                WriteSplitImplementation(writer, sortKeyParts, "sortKey", out string sortKeyPartRangesVariable, false, out sortKeyPartCountVariable);
-                getSortKeyPartInputVariable = indexExpr => $"sortKey[{sortKeyPartRangesVariable}[{indexExpr}]]";
+                writer.WriteLines($"""
+                                   result = {WriteConstructor(targetTypeSpec)};
+                                   return true;
+                                   """);
             }
-
-            var propertyNameCounts = partitionKeyParts.Concat(sortKeyParts).OfType<PropertyKeyPart>().GroupBy(p => p.Property.CamelCaseName).ToDictionary(g => g.Key, _ => 0);
-            WriteParsePropertiesImplementation(writer, partitionKeyParts, getPartitionKeyPartInputVariable, false, propertyNameCounts, partitionKeyPartCountVariable);
-            WriteParsePropertiesImplementation(writer, sortKeyParts, getSortKeyPartInputVariable, false, propertyNameCounts, sortKeyPartCountVariable);
-
-            writer.WriteLines($"""
-                               result = {WriteConstructor(targetTypeSpec)};
-                               return true;
-                               """);
 
             writer.EndBlock();
             writer.WriteLine();
