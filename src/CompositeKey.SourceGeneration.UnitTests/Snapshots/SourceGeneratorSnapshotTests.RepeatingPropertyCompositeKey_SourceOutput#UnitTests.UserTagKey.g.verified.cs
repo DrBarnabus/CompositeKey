@@ -200,7 +200,7 @@ namespace UnitTests
             return new UserTagKey() { UserId = userId, Tags = tags };
         }
 
-        public static bool TryParse([global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string partitionKey, string sortKey, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out UserTagKey? result)
+        public static bool TryParse([global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? partitionKey, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? sortKey, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out UserTagKey? result)
         {
             if (partitionKey is null || sortKey is null)
             {
