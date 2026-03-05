@@ -3,6 +3,8 @@ using System.Reflection;
 using System.Text;
 using CompositeKey.SourceGeneration.Core;
 using CompositeKey.SourceGeneration.Core.Extensions;
+using CompositeKey.SourceGeneration.Emission.Format;
+using CompositeKey.SourceGeneration.Emission.Parse;
 using CompositeKey.SourceGeneration.Model;
 using CompositeKey.SourceGeneration.Model.Key;
 using Microsoft.CodeAnalysis;
@@ -18,6 +20,32 @@ internal sealed class Emitter(SourceProductionContext context)
     private const string NotNullWhen = "global::System.Diagnostics.CodeAnalysis.NotNullWhen";
     private const string MaybeNullWhen = "global::System.Diagnostics.CodeAnalysis.MaybeNullWhen";
     private const string InvariantCulture = "global::System.Globalization.CultureInfo.InvariantCulture";
+
+    private static readonly Dictionary<ParseType, IParseStrategy> ParseStrategies = new()
+    {
+        [ParseType.Guid] = GuidParseStrategy.Instance,
+        [ParseType.String] = StringParseStrategy.Instance,
+        [ParseType.Enum] = EnumParseStrategy.Instance,
+        [ParseType.SpanParsable] = SpanParsableParseStrategy.Instance,
+    };
+
+    private static readonly Dictionary<FormatType, IFormatStrategy> FormatStrategies = new()
+    {
+        [FormatType.Guid] = GuidFormatStrategy.Instance,
+        [FormatType.String] = StringFormatStrategy.Instance,
+        [FormatType.Enum] = EnumFormatStrategy.Instance,
+        [FormatType.SpanFormattable] = SpanFormattableFormatStrategy.Instance,
+    };
+
+    private static IParseStrategy GetParseStrategy(ParseType parseType) =>
+        ParseStrategies.TryGetValue(parseType, out var strategy)
+            ? strategy
+            : throw new InvalidOperationException($"No parse strategy registered for {parseType}.");
+
+    private static IFormatStrategy GetFormatStrategy(FormatType formatType) =>
+        FormatStrategies.TryGetValue(formatType, out var strategy)
+            ? strategy
+            : throw new InvalidOperationException($"No format strategy registered for {formatType}.");
 
     private readonly SourceProductionContext _context = context;
 
@@ -462,45 +490,8 @@ internal sealed class Emitter(SourceProductionContext context)
                 ? GetCamelCaseName(propertyPart.Property, propertyNameCounts)
                 : throw new InvalidOperationException($"Expected a {nameof(PropertyKeyPart)} but got a {valueKeyPart.GetType().Name}");
 
-            switch (valueKeyPart)
-            {
-                case PropertyKeyPart { TypeDescriptor.ParseType: ParseType.Guid } part:
-                    writer.WriteLines($"""
-                                       if ({ToStrictLengthCheck(part, partInputVariable)}!Guid.TryParseExact({partInputVariable}, "{part.Format}", out var {camelCaseName}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-
-                                       """);
-                    break;
-
-                case PropertyKeyPart { TypeDescriptor.ParseType: ParseType.String }:
-                    writer.WriteLines($"""
-                                       if ({partInputVariable}.Length == 0)
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-
-                                       string {camelCaseName} = {partInputVariable}.ToString();
-
-                                       """);
-                    break;
-
-                case PropertyKeyPart { TypeDescriptor.ParseType: ParseType.Enum } part:
-                    if (part.Property.EnumSpec is null)
-                        throw new InvalidOperationException($"{nameof(part.Property.EnumSpec)} is null");
-
-                    writer.WriteLines($"""
-                                       if (!{part.Property.EnumSpec.Name}Helper.TryParse({partInputVariable}, out var {camelCaseName}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-
-                                       """);
-                    break;
-
-                case PropertyKeyPart { TypeDescriptor.ParseType: ParseType.SpanParsable } part:
-                    writer.WriteLines($"""
-                                       if (!{part.Property.Type.FullyQualifiedName}.TryParse({partInputVariable}, out var {camelCaseName}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-
-                                       """);
-                    break;
-            }
+            var parseStrategy = GetParseStrategy(propertyPart.TypeDescriptor.ParseType);
+            parseStrategy.EmitSingleParse(writer, propertyPart, partInputVariable, camelCaseName, shouldThrow);
 
             if (originalCamelCaseName is not null)
             {
@@ -521,9 +512,6 @@ internal sealed class Emitter(SourceProductionContext context)
                 ? (property.CamelCaseName, null)
                 : ($"{property.CamelCaseName}{propertyCount}", property.CamelCaseName);
         }
-
-        static string ToStrictLengthCheck(KeyPart part, string input) =>
-            part.ExactLengthRequirement ? $"{input}.Length != {part.LengthRequired} || " : string.Empty;
 
         void WriteRepeatingPropertyParse(PropertyKeyPart repeatingPart, int valuePartIndex)
         {
@@ -547,7 +535,8 @@ internal sealed class Emitter(SourceProductionContext context)
 
                 string riAccess = getPartInputVariable("ri");
 
-                WriteRepeatingItemParse(repeatingPart, riAccess, itemVar, listVar);
+                var repeatingStrategy = GetParseStrategy(repeatingPart.TypeDescriptor.ParseType);
+                repeatingStrategy.EmitRepeatingItemParse(writer, repeatingPart, riAccess, itemVar, listVar, shouldThrow);
 
                 writer.EndBlock();
                 writer.WriteLine();
@@ -571,7 +560,9 @@ internal sealed class Emitter(SourceProductionContext context)
                 writer.StartBlock($"for (int ri = 0; ri < {repeatingCountVar}; ri++)");
 
                 string riAccess = $"{partInputVariable}[{repeatingRangesVar}[ri]]";
-                WriteRepeatingItemParse(repeatingPart, riAccess, itemVar, listVar);
+
+                var repeatingStrategy = GetParseStrategy(repeatingPart.TypeDescriptor.ParseType);
+                repeatingStrategy.EmitRepeatingItemParse(writer, repeatingPart, riAccess, itemVar, listVar, shouldThrow);
 
                 writer.EndBlock();
                 writer.WriteLine();
@@ -585,48 +576,6 @@ internal sealed class Emitter(SourceProductionContext context)
                                """);
         }
 
-        void WriteRepeatingItemParse(PropertyKeyPart repeatingPart, string itemInput, string itemVar, string listVar)
-        {
-            string innerTypeName = repeatingPart.CollectionSemantics!.InnerType.FullyQualifiedName;
-
-            switch (repeatingPart.TypeDescriptor.ParseType)
-            {
-                case ParseType.Guid:
-                    writer.WriteLines($"""
-                                       if (!Guid.TryParseExact({itemInput}, "{repeatingPart.Format}", out var {itemVar}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                                       {listVar}.Add({itemVar});
-                                       """);
-                    break;
-
-                case ParseType.String:
-                    writer.WriteLines($"""
-                                       if ({itemInput}.Length == 0)
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                                       {listVar}.Add({itemInput}.ToString());
-                                       """);
-                    break;
-
-                case ParseType.Enum:
-                    if (repeatingPart.Property.EnumSpec is null)
-                        throw new InvalidOperationException($"{nameof(repeatingPart.Property.EnumSpec)} is null");
-
-                    writer.WriteLines($"""
-                                       if (!{repeatingPart.Property.EnumSpec.Name}Helper.TryParse({itemInput}, out var {itemVar}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                                       {listVar}.Add({itemVar});
-                                       """);
-                    break;
-
-                case ParseType.SpanParsable:
-                    writer.WriteLines($"""
-                                       if (!{innerTypeName}.TryParse({itemInput}, out var {itemVar}))
-                                           {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
-                                       {listVar}.Add({itemVar});
-                                       """);
-                    break;
-            }
-        }
     }
 
     private static string WriteConstructor(TargetTypeSpec targetTypeSpec)
@@ -679,12 +628,8 @@ internal sealed class Emitter(SourceProductionContext context)
         {
             WriteRepeatingFormatBody();
         }
-        else if (keyParts.All(kp => kp is
-                DelimiterKeyPart
-                or ConstantKeyPart
-                or PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Guid, ExactLengthRequirement: true }
-                or PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Enum, Format: "g" }
-                or PropertyKeyPart { TypeDescriptor.FormatType: FormatType.String }))
+        else if (keyParts.All(kp =>
+            kp is not PropertyKeyPart pp || GetFormatStrategy(pp.TypeDescriptor.FormatType).SupportsSpanFormat(pp)))
         {
             string lengthRequired = keyParts
                 .Where(kp => kp.ExactLengthRequirement)
@@ -702,12 +647,8 @@ internal sealed class Emitter(SourceProductionContext context)
                 if (lengthRequired.Length != 0)
                     lengthRequired += " + ";
 
-                lengthRequired += keyPart switch
-                {
-                    PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Enum, Property.EnumSpec: not null } p => $"{p.Property.EnumSpec.Name}Helper.GetFormattedLength({p.Property.Name})",
-                    PropertyKeyPart { TypeDescriptor.FormatType: FormatType.String } p => $"{p.Property.Name}.Length",
-                    _ => throw new InvalidOperationException()
-                };
+                lengthRequired += GetFormatStrategy(((PropertyKeyPart)keyPart).TypeDescriptor.FormatType)
+                    .GetVariableLengthExpression((PropertyKeyPart)keyPart);
             }
 
             writer.StartBlock($"return string.Create({lengthRequired}, this, static (destination, state) =>");
@@ -728,24 +669,9 @@ internal sealed class Emitter(SourceProductionContext context)
                         writer.WriteLine($"\"{c.Value}\".CopyTo(destination[position..]);");
                         writer.WriteLine($"position += {c.Value.Length};");
                         break;
-                    case PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Guid } p:
-                        string formatProvider = invariantFormatting ? InvariantCulture : "null";
-                        writer.StartBlock();
-                        writer.WriteLine($"if (!((ISpanFormattable)state.{p.Property.Name}).TryFormat(destination[position..], out int {GetCharsWritten(p.Property)}, \"{p.Format ?? "d"}\", {formatProvider}))");
-                        writer.WriteLine("\tthrow new FormatException();\n");
-                        writer.WriteLine($"position += {GetCharsWritten(p.Property)};");
-                        writer.EndBlock();
-                        break;
-                    case PropertyKeyPart { TypeDescriptor.FormatType: FormatType.Enum, Property.EnumSpec: not null } p:
-                        writer.StartBlock();
-                        writer.WriteLine($"if (!{p.Property.EnumSpec.Name}Helper.TryFormat(state.{p.Property.Name}, destination[position..], out int {GetCharsWritten(p.Property)}))");
-                        writer.WriteLine("\tthrow new FormatException();\n");
-                        writer.WriteLine($"position += {GetCharsWritten(p.Property)};");
-                        writer.EndBlock();
-                        break;
-                    case PropertyKeyPart { TypeDescriptor.FormatType: FormatType.String } p:
-                        writer.WriteLine($"state.{p.Property.Name}.CopyTo(destination[position..]);");
-                        writer.WriteLine($"position += state.{p.Property.Name}.Length;");
+                    case PropertyKeyPart p:
+                        GetFormatStrategy(p.TypeDescriptor.FormatType)
+                            .EmitSpanFormat(writer, p, "position", invariantFormatting);
                         break;
                     default:
                         throw new InvalidOperationException();
@@ -770,8 +696,6 @@ internal sealed class Emitter(SourceProductionContext context)
         writer.WriteLine();
 
         return;
-
-        static string GetCharsWritten(PropertySpec p) => $"{p.CamelCaseName}CharsWritten";
 
         void WriteRepeatingFormatBody()
         {
