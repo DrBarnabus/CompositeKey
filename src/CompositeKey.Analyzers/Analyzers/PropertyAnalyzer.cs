@@ -92,7 +92,9 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
                         nonRepeatingResult);
                 }
 
-                var typeInfo = CreatePropertyTypeInfo(property, context.Compilation);
+                var guidType = context.Compilation.GetTypeByMetadataName("System.Guid");
+                var stringType = context.Compilation.GetSpecialType(SpecialType.System_String);
+                var typeInfo = PropertyValidation.CreatePropertyTypeInfo(property.Type, guidType, stringType);
 
                 if (!string.IsNullOrEmpty(propertyToken.Format))
                 {
@@ -162,9 +164,13 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
                 }
 
                 // Validate format/type compatibility for the inner type T
-                var innerTypeInfo = CreateInnerTypeInfo(property, context.Compilation);
-                if (innerTypeInfo is null)
+                if (property.Type is not INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: > 0 } namedType)
                     continue;
+
+                var innerType = namedType.TypeArguments[0];
+                var innerGuidType = context.Compilation.GetTypeByMetadataName("System.Guid");
+                var innerStringType = context.Compilation.GetSpecialType(SpecialType.System_String);
+                var innerTypeInfo = PropertyValidation.CreatePropertyTypeInfo(innerType, innerGuidType, innerStringType);
 
                 if (!string.IsNullOrEmpty(repeatingToken.Format))
                 {
@@ -267,53 +273,6 @@ public sealed class PropertyAnalyzer : CompositeKeyAnalyzerBase
             IsList: listType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, listType),
             IsReadOnlyList: readOnlyListType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, readOnlyListType),
             IsImmutableArray: immutableArrayType is not null && SymbolEqualityComparer.Default.Equals(originalDefinition, immutableArrayType));
-    }
-
-    /// <summary>
-    /// Creates PropertyTypeInfo for the inner type T of a collection property.
-    /// </summary>
-    private static PropertyValidation.PropertyTypeInfo? CreateInnerTypeInfo(
-        IPropertySymbol property,
-        Compilation compilation)
-    {
-        if (property.Type is not INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: > 0 } namedType)
-            return null;
-
-        var innerType = namedType.TypeArguments[0];
-
-        var guidType = compilation.GetTypeByMetadataName("System.Guid");
-        var stringType = compilation.GetSpecialType(SpecialType.System_String);
-
-        var (isSpanParsable, isSpanFormattable) = PropertyValidation.DetectSpanInterfaces(innerType);
-
-        return new PropertyValidation.PropertyTypeInfo(
-            TypeName: innerType.ToDisplayString(),
-            IsGuid: SymbolEqualityComparer.Default.Equals(innerType, guidType),
-            IsString: SymbolEqualityComparer.Default.Equals(innerType, stringType),
-            IsEnum: innerType.TypeKind == TypeKind.Enum,
-            IsSpanParsable: isSpanParsable,
-            IsSpanFormattable: isSpanFormattable);
-    }
-
-    /// <summary>
-    /// Creates PropertyTypeInfo from a property symbol for validation.
-    /// </summary>
-    private static PropertyValidation.PropertyTypeInfo CreatePropertyTypeInfo(
-        IPropertySymbol property,
-        Compilation compilation)
-    {
-        var guidType = compilation.GetTypeByMetadataName("System.Guid");
-        var stringType = compilation.GetSpecialType(SpecialType.System_String);
-
-        var (isSpanParsable, isSpanFormattable) = PropertyValidation.DetectSpanInterfaces(property.Type);
-
-        return new PropertyValidation.PropertyTypeInfo(
-            TypeName: property.Type.ToDisplayString(),
-            IsGuid: SymbolEqualityComparer.Default.Equals(property.Type, guidType),
-            IsString: SymbolEqualityComparer.Default.Equals(property.Type, stringType),
-            IsEnum: property.Type.TypeKind == TypeKind.Enum,
-            IsSpanParsable: isSpanParsable,
-            IsSpanFormattable: isSpanFormattable);
     }
 
     /// <summary>
