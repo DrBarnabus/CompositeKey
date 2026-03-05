@@ -251,7 +251,7 @@ internal sealed class Emitter(SourceProductionContext context)
             else
             {
                 writer.WriteLines($$"""
-                                    public static bool TryParse([{{NotNullWhen}}(true)] string partitionKey, string sortKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
+                                    public static bool TryParse([{{NotNullWhen}}(true)] string? partitionKey, [{{NotNullWhen}}(true)] string? sortKey, [{{MaybeNullWhen}}(false)] out {{targetTypeSpec.TypeName}}? result)
                                     {
                                         if (partitionKey is null || sortKey is null)
                                         {

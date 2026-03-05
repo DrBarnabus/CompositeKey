@@ -151,7 +151,7 @@ namespace AnotherNamespace
             return new BasicPrimaryKey(firstPart, secondPart, thirdPart);
         }
 
-        public static bool TryParse([global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string partitionKey, string sortKey, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out BasicPrimaryKey? result)
+        public static bool TryParse([global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? partitionKey, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? sortKey, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out BasicPrimaryKey? result)
         {
             if (partitionKey is null || sortKey is null)
             {

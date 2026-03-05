@@ -199,7 +199,7 @@ namespace UnitTests
             return new BasicNonSequentialEnum(firstPart, secondPart, thirdPart);
         }
 
-        public static bool TryParse([global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string partitionKey, string sortKey, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out BasicNonSequentialEnum? result)
+        public static bool TryParse([global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? partitionKey, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? sortKey, [global::System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out BasicNonSequentialEnum? result)
         {
             if (partitionKey is null || sortKey is null)
             {
