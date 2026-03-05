@@ -7,9 +7,9 @@ internal sealed class GuidParseStrategy : IParseStrategy
 {
     public static readonly GuidParseStrategy Instance = new();
 
-    public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow)
+    public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow, bool skipRedundantLengthCheck)
     {
-        string strictLengthCheck = part.ExactLengthRequirement
+        string strictLengthCheck = part.ExactLengthRequirement && !skipRedundantLengthCheck
             ? $"{inputVar}.Length != {part.LengthRequired} || "
             : string.Empty;
 

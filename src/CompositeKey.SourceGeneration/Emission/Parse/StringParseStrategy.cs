@@ -7,12 +7,18 @@ internal sealed class StringParseStrategy : IParseStrategy
 {
     public static readonly StringParseStrategy Instance = new();
 
-    public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow)
+    public void EmitSingleParse(SourceWriter writer, PropertyKeyPart part, string inputVar, string outputVar, bool shouldThrow, bool skipRedundantLengthCheck)
     {
-        writer.WriteLines($"""
-                           if ({inputVar}.Length == 0)
-                               {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
+        if (!skipRedundantLengthCheck)
+        {
+            writer.WriteLines($"""
+                               if ({inputVar}.Length == 0)
+                                   {(shouldThrow ? "throw new FormatException(\"Unrecognized format.\")" : "return false")};
 
+                               """);
+        }
+
+        writer.WriteLines($"""
                            string {outputVar} = {inputVar}.ToString();
 
                            """);

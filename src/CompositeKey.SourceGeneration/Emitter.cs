@@ -437,6 +437,8 @@ internal sealed class Emitter(SourceProductionContext context)
     private static void WriteParsePropertiesImplementation(
         SourceWriter writer, List<KeyPart> parts, Func<string, string> getPartInputVariable, bool shouldThrow, Dictionary<string, int> propertyNameCounts, string? inputPartCountVariable = null)
     {
+        bool skipRedundantLengthCheck = parts.Count == 1;
+
         var valueParts = parts.OfType<ValueKeyPart>().ToArray();
         for (int i = 0; i < valueParts.Length; i++)
         {
@@ -464,7 +466,7 @@ internal sealed class Emitter(SourceProductionContext context)
                 : throw new InvalidOperationException($"Expected a {nameof(PropertyKeyPart)} but got a {valueKeyPart.GetType().Name}");
 
             var parseStrategy = GetParseStrategy(propertyPart.TypeDescriptor.ParseType);
-            parseStrategy.EmitSingleParse(writer, propertyPart, partInputVariable, camelCaseName, shouldThrow);
+            parseStrategy.EmitSingleParse(writer, propertyPart, partInputVariable, camelCaseName, shouldThrow, skipRedundantLengthCheck);
 
             if (originalCamelCaseName is not null)
             {
