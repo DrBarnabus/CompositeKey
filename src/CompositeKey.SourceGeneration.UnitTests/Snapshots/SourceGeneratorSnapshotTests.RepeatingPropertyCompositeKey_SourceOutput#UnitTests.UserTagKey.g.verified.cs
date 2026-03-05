@@ -185,6 +185,8 @@ namespace UnitTests
             int tagsCount = sortKey[sortKeyPartRanges[1]].Split(tagsRanges, '#', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (tagsCount < 1)
                 throw new FormatException("Unrecognized format.");
+            if (tagsCount == 128)
+                throw new FormatException("Repeating section exceeds the maximum supported item count (127).");
             
             var tags = new global::System.Collections.Generic.List<string>();
             for (int ri = 0; ri < tagsCount; ri++)
@@ -235,6 +237,8 @@ namespace UnitTests
             Span<Range> tagsRanges = stackalloc Range[128];
             int tagsCount = sortKey[sortKeyPartRanges[1]].Split(tagsRanges, '#', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (tagsCount < 1)
+                return false;
+            if (tagsCount == 128)
                 return false;
             
             var tags = new global::System.Collections.Generic.List<string>();
