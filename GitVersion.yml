@@ -1,6 +1,6 @@
 branches:
   main:
-    mode: ContinuousDeployment
+    mode: ContinuousDelivery
     label: preview
 
 major-version-bump-message: "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\\([\\w\\s-,/\\\\]*\\))?(!:|:.*\\n\\n((.+\\n)+\\n)?BREAKING CHANGE:\\s.+)"
